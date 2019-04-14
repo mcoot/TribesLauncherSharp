@@ -20,9 +20,16 @@ namespace TribesLauncherSharp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Config LauncherConfig { get; set; } = new Config();
+
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void LauncherButton_Click(object sender, RoutedEventArgs e)
+        {
+            
         }
     }
 }
