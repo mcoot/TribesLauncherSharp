@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,8 +10,14 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace TribesLauncherSharp
 {
-    class Config
+    class Config : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public class ConfigLoadException : Exception {
             public ConfigLoadException() : base() { }
             public ConfigLoadException(string message) : base(message) { }
@@ -22,8 +29,14 @@ namespace TribesLauncherSharp
             public ConfigSaveException(string message, Exception inner) : base(message, inner) { }
         }
 
-        public class LoginServerConfig
+        public class LoginServerConfig : INotifyPropertyChanged
         {
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
             public enum LoginServerMode
             {
                 Community,
@@ -34,8 +47,14 @@ namespace TribesLauncherSharp
             public string CustomLoginServerHost { get; set; } = "127.0.0.1";
         }
 
-        public class DLLConfig
+        public class DLLConfig : INotifyPropertyChanged
         {
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
             public enum DLLMode
             {
                 Release,
@@ -47,8 +66,14 @@ namespace TribesLauncherSharp
             public string CustomDLLPath { get; set; } = "";
         }
 
-        public class InjectConfig
+        public class InjectConfig : INotifyPropertyChanged
         {
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
             public enum InjectMode
             {
                 Manual,
