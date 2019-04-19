@@ -3,13 +3,37 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Data;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace TribesLauncherSharp
 {
+    enum LoginServerMode
+    {
+        Community,
+        HiRez,
+        Custom,
+    }
+
+    enum DLLMode
+    {
+        Release,
+        Beta,
+        Edge,
+        Custom
+    }
+
+    enum InjectMode
+    {
+        Manual,
+        Automatic
+    }
+
     class Config : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -17,6 +41,15 @@ namespace TribesLauncherSharp
         {
             this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (Equals(storage, value)) return false;
+
+            storage = value;
+            this.OnPropertyChanged(propertyName);
+            return true;
+        }
+
 
         public class ConfigLoadException : Exception {
             public ConfigLoadException() : base() { }
@@ -36,15 +69,38 @@ namespace TribesLauncherSharp
             {
                 this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-
-            public enum LoginServerMode
+            protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
             {
-                Community,
-                HiRez,
-                Custom,
+                if (Equals(storage, value)) return false;
+
+                storage = value;
+                this.OnPropertyChanged(propertyName);
+                return true;
             }
-            public LoginServerMode LoginServer { get; set; } = LoginServerMode.Community;
-            public string CustomLoginServerHost { get; set; } = "127.0.0.1";
+
+            private LoginServerMode loginServer = LoginServerMode.Community;
+            public LoginServerMode LoginServer {
+                get { return loginServer; }
+                set
+                {
+                    if (SetProperty(ref loginServer, value))
+                    {
+                        this.OnPropertyChanged("IsCustom");
+                    }
+                }
+            }
+
+            private string customLoginServerHost = "127.0.0.1";
+            public string CustomLoginServerHost {
+                get { return customLoginServerHost; }
+                set { SetProperty(ref customLoginServerHost, value); }
+            }
+
+            [YamlIgnore]
+            public bool IsCustom
+            {
+                get { return LoginServer == LoginServerMode.Custom; }
+            }
         }
 
         public class DLLConfig : INotifyPropertyChanged
@@ -54,16 +110,38 @@ namespace TribesLauncherSharp
             {
                 this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-
-            public enum DLLMode
+            protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
             {
-                Release,
-                Beta,
-                Edge,
-                Custom
+                if (Equals(storage, value)) return false;
+
+                storage = value;
+                this.OnPropertyChanged(propertyName);
+                return true;
             }
-            public DLLMode Channel { get; set; } = DLLMode.Release;
-            public string CustomDLLPath { get; set; } = "";
+
+            private DLLMode channel = DLLMode.Release;
+            public DLLMode Channel
+            {
+                get { return channel; }
+                set {
+                    if (SetProperty(ref channel, value))
+                    {
+                        this.OnPropertyChanged("IsCustom");
+                    }
+                }
+            }
+
+            private string customDLLPath = "";
+            public string CustomDLLPath {
+                get { return customDLLPath; }
+                set { SetProperty(ref customDLLPath, value); }
+            }
+
+            [YamlIgnore]
+            public bool IsCustom
+            {
+                get { return Channel == DLLMode.Custom; }
+            }
         }
 
         public class InjectConfig : INotifyPropertyChanged
@@ -73,22 +151,57 @@ namespace TribesLauncherSharp
             {
                 this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-
-            public enum InjectMode
+            protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
             {
-                Manual,
-                Automatic
+                if (Equals(storage, value)) return false;
+
+                storage = value;
+                this.OnPropertyChanged(propertyName);
+                return true;
             }
-            public InjectMode Mode { get; set; } = InjectMode.Manual;
-            public int AutoInjectTimer { get; set; } = 20;
+
+            private InjectMode mode = InjectMode.Manual;
+            public InjectMode Mode
+            {
+                get { return mode; }
+                set
+                {
+                    if (SetProperty(ref mode, value))
+                    {
+                        this.OnPropertyChanged("IsAutomatic");
+                    }
+                }
+            }
+            private int autoInjectTimer = 20;
+            public int AutoInjectTimer {
+                get { return autoInjectTimer; }
+                set { SetProperty(ref autoInjectTimer, value); }
+            }
+
+            [YamlIgnore]
+            public bool IsAutomatic
+            {
+                get { return Mode == InjectMode.Automatic; }
+            }
         }
         
-
-        public string GamePath { get; set; } = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe";
+        private string gamePath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe";
+        public string GamePath
+        {
+            get { return gamePath; }
+            set { SetProperty(ref gamePath, value); }
+        }
+        
         public DLLConfig DLL { get; set; } = new DLLConfig();
         public InjectConfig Injection { get; set; } = new InjectConfig();
         public LoginServerConfig LoginServer { get; set; } = new LoginServerConfig();
-        public string UpdateUrl { get; set; } = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release";
+
+        private string updateUrl = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release";
+        public string UpdateUrl
+        {
+            get { return updateUrl; }
+            set { SetProperty(ref updateUrl, value); }
+        }
 
         private static ISerializer serializer = new SerializerBuilder()
             .EmitDefaults()
