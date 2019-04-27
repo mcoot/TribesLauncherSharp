@@ -64,7 +64,9 @@ namespace TribesLauncherSharp
 
         private void LaunchGame()
         {
+            Config config = (Config)DataContext;
 
+            //InjectorLauncher.LaunchGame(config.GamePath, , config.CustomArguments);
         }
 
         private void Inject()

@@ -191,6 +191,12 @@ namespace TribesLauncherSharp
             get { return gamePath; }
             set { SetProperty(ref gamePath, value); }
         }
+        private string customArguments = "";
+        public string CustomArguments
+        {
+            get { return customArguments; }
+            set { SetProperty(ref customArguments, value); }
+        }
         
         public DLLConfig DLL { get; set; } = new DLLConfig();
         public InjectConfig Injection { get; set; } = new InjectConfig();

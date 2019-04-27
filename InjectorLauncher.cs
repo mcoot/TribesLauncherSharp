@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace TribesLauncherSharp
 {
-    public class Injector
+    public class InjectorLauncher
     {
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
@@ -60,7 +60,15 @@ namespace TribesLauncherSharp
             public InjectorException(string message, Exception inner) : base(message, inner) { }
         }
 
-        public static bool DoesProcessExist(string processName) => Process.GetProcessesByName(processName).Length > 0;
+        public class LauncherException : Exception
+        {
+            public LauncherException() : base() { }
+            public LauncherException(string message) : base(message) { }
+            public LauncherException(string message, Exception inner) : base(message, inner) { }
+        }
+
+        public static int NumProcessesRunning(string processName) => Process.GetProcessesByName(processName).Length;
+        public static bool DoesProcessExist(string processName) => NumProcessesRunning(processName) > 0;
         public static bool DoesProcessExist(int processId) {
             try
             {
@@ -71,7 +79,15 @@ namespace TribesLauncherSharp
                 return false;
             }
         }
-        
+
+        public static int LaunchGame(string binaryPath, string loginServerHost, string extraArgs = "")
+        {
+            if (!File.Exists(binaryPath)) throw new LauncherException("Unable to locate game binary");
+
+            Process p = Process.Start(binaryPath, $"-hostx={loginServerHost} {extraArgs}");
+
+            return p.Id;
+        }
 
         private static IntPtr GetProcessHandle(string processName)
         {
