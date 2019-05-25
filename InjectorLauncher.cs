@@ -270,7 +270,8 @@ namespace TribesLauncherSharp
                 if (!File.Exists(dllPath)) throw new InjectorException($"DLL file {dllPath} does not exist");
 
                 // Get the absolute DLL path
-                string fullDllPath = new FileInfo(dllPath).Directory.FullName;
+                FileInfo fi = new FileInfo(dllPath);
+                string fullDllPath = fi.FullName;
 
                 // Write DLL name into the process
                 IntPtr nameAddress = WriteDLLNameToProcessMemory(handle, fullDllPath);
