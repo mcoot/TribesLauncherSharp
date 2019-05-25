@@ -25,7 +25,7 @@ namespace TribesLauncherSharp
         public string LatestLauncherVersion { get; set; } = "0.1.0";
         public string LauncherUpdateLink { get; set; } = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release/news.json";
 
-        public static News DownloadNews(string newsUrl)
+        public void DownloadNews(string newsUrl)
         {
             using (var wc = new WebClient())
             {
@@ -38,20 +38,17 @@ namespace TribesLauncherSharp
                 {
                     throw new NewsParsingException("Failed to parse update news data", ex);
                 }
-                var n = new News();
 
                 try
                 {
-                    n.LatestLauncherVersion = data.tribesLauncherSharpVersion;
-                    n.LauncherUpdateLink = data.launcherUpdateLink;
-                    n.HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
-                    n.CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
+                    LatestLauncherVersion = data.tribesLauncherSharpVersion;
+                    LauncherUpdateLink = data.launcherUpdateLink;
+                    HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
+                    CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
                 } catch (RuntimeBinderException ex)
                 {
                     throw new NewsParsingException("Missing expected fields in update news data", ex);
                 }
-
-                return n;
             }
         }
     }

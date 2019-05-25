@@ -6,6 +6,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Windows;
 
 namespace TribesLauncherSharp
 {
@@ -89,6 +91,129 @@ namespace TribesLauncherSharp
             return p.Id;
         }
 
+        #region Target Process Detection
+        public class OnProcessStatusEventArgs : EventArgs
+        {
+            public string ProcessName { get; set; }
+            public int ProcessId { get; set; }
+
+            public OnProcessStatusEventArgs(string processName, int processId)
+            {
+                ProcessName = processName;
+                ProcessId = processId;
+            }
+        }
+
+        public event EventHandler<OnProcessStatusEventArgs> OnTargetProcessLaunched;
+        public event EventHandler<OnProcessStatusEventArgs> OnTargetProcessEnded;
+        public event EventHandler<UnhandledExceptionEventArgs> OnTargetPollingException;
+
+        private class ProcessTarget
+        {
+            private bool TargetById { get; }
+            private string TargetName { get; }
+            private int TargetId { get; }
+
+
+            public ProcessTarget(int processId)
+            {
+                TargetById = true;
+                TargetId = processId;
+                TargetName = null;
+            }
+
+            public ProcessTarget(string processName)
+            {
+                TargetById = false;
+                TargetId = 0;
+                TargetName = processName;
+            }
+
+            public bool TargetExists()
+                => (TargetById && DoesProcessExist(TargetId)) || (!TargetById && DoesProcessExist(TargetName));
+
+            public bool IsTarget(Process process)
+                => (TargetById && TargetId == process.Id) || (!TargetById && TargetName == process.ProcessName);
+
+            public Process FindTargetProcess()
+            {
+                if (!TargetExists()) return null;
+                if (TargetById)
+                {
+                    return Process.GetProcessById(TargetId);
+                } else
+                {
+                    var procs = Process.GetProcessesByName(TargetName);
+                    return procs.Length > 0 ? procs[0] : null;
+                }
+            }
+        }
+
+        private ProcessTarget Target { get; set; }
+        public Process FoundProcess { get; private set; }
+
+        private Timer PollingTimer { get; set; }
+
+        public InjectorLauncher()
+        {
+            Target = null;
+
+            PollingTimer = new Timer(1000);
+            PollingTimer.AutoReset = true;
+            PollingTimer.Elapsed += PollingTimer_Tick;
+            PollingTimer.Start();
+        }
+
+        private void PollingTimer_Tick(object sender, ElapsedEventArgs e)
+        {
+            try
+            {
+                if (Target == null) return;
+
+                if (FoundProcess == null && Target.TargetExists())
+                {
+                    Process proc = Target.FindTargetProcess();
+                    if (proc == null) return;
+                    FoundProcess = proc;
+                    OnProcessStatusEventArgs args = new OnProcessStatusEventArgs(proc.ProcessName, proc.Id);
+                    OnTargetProcessLaunched?.Invoke(this, args);
+                    return;
+                }
+
+                if (FoundProcess != null && !Target.TargetExists())
+                {
+                    OnProcessStatusEventArgs args = new OnProcessStatusEventArgs(FoundProcess.ProcessName, FoundProcess.Id);
+                    FoundProcess = null;
+
+                    OnTargetProcessEnded?.Invoke(this, args);
+                }
+            } catch (Exception ex)
+            {
+                if (OnTargetPollingException == null)
+                {
+                    throw;
+                }
+                OnTargetPollingException?.Invoke(this, new UnhandledExceptionEventArgs(ex, false));
+            }
+        }
+
+        public void SetTarget(string processName)
+        {
+            Target = new ProcessTarget(processName);
+        }
+
+        public void SetTarget(int processId)
+        {
+            Target = new ProcessTarget(processId);
+        }
+
+        public void UnsetTarget()
+        {
+            Target = null;
+        }
+        #endregion
+
+        #region Injector
         private static IntPtr GetProcessHandle(string processName)
         {
             Process[] processes = Process.GetProcessesByName(processName);
@@ -169,5 +294,6 @@ namespace TribesLauncherSharp
 
         public static void Inject(string processName, string dllPath) => InjectInternal(GetProcessHandle(processName), dllPath);
         public static void Inject(int processId, string dllPath) => InjectInternal(GetProcessHandle(processId), dllPath);
+        #endregion
     }
 }

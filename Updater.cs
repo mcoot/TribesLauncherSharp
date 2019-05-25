@@ -65,7 +65,9 @@ namespace TribesLauncherSharp
 
         private static Dictionary<string, double> ReadManifest(XElement manifestDoc) 
             => manifestDoc
-            .Descendants("TAMods").Descendants("Files")
+            .Descendants("files")
+            .Where((e) => (string) e.Attribute("channel") == "stable")
+            .Descendants("file")
             .ToDictionary(e => e.Value, e => (double)e.Attribute("version"));
 
         private static Dictionary<string, double> DiffManifests(Dictionary<string, double> oldManifest, Dictionary<string, double> newManifest)
@@ -97,12 +99,15 @@ namespace TribesLauncherSharp
                 foreach (var f in filesToDownload.Keys.Select((x, i) => new { Idx = i, Filename = x }))
                 {
                     // Create directory if required
-                    string dir = $"{LocalBasePath}/tmp/{new FileInfo(f.Filename).Directory.FullName}";
+                    int dirSplitPos = Math.Max(0, Math.Max(f.Filename.LastIndexOf('/'), f.Filename.LastIndexOf('\\')));
+                    string relativeDir = f.Filename.Substring(0, dirSplitPos);
+                    string dir = $"{LocalBasePath}/tmp/{relativeDir}";
                     if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                     // Download the file
                     await wc.DownloadFileTaskAsync(new Uri($"{RemoteBaseUrl}/{f.Filename}"), $"{LocalBasePath}/tmp/{f.Filename}");
-                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(((double)f.Idx + 1) / filesToDownload.Count));
+                    double pct = ((double)f.Idx + 1) / filesToDownload.Count;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
                 }
             }
 
@@ -124,11 +129,16 @@ namespace TribesLauncherSharp
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                 // Copy the file
-                File.Copy($"{LocalBasePath}/tmp/{filename}", copyLocation);
+                File.Copy($"{LocalBasePath}/tmp/{filename}", copyLocation, true);
             }
 
             // Delete temp directory
             Directory.Delete($"{LocalBasePath}/tmp", true);
+
+            // Download the current version manifest
+            // TODO: THIS
+            var newLocalManifest = XElement.Load($"{RemoteBaseUrl}/version.xml");
+            newLocalManifest.Save($"{LocalBasePath}/version.xml");
 
             // Raise finished event
             OnUpdateComplete?.Invoke(this, new EventArgs());

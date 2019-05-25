@@ -178,6 +178,20 @@ namespace TribesLauncherSharp
                 set { SetProperty(ref autoInjectTimer, value); }
             }
 
+            private bool injectByProcessId = false;
+            public bool InjectByProcessId
+            {
+                get { return injectByProcessId; }
+                set { SetProperty(ref injectByProcessId, value); }
+            }
+
+            private string runningProcessName = "tribesascend";
+            public string RunningProcessName
+            {
+                get { return runningProcessName; }
+                set { SetProperty(ref runningProcessName, value); }
+            }
+
             [YamlIgnore]
             public bool IsAutomatic
             {
