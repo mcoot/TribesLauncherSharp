@@ -104,6 +104,20 @@ namespace TribesLauncherSharp
         {
             if (Status == LauncherStatus.UPDATE_IN_PROGRESS) return;
 
+            // If the user has ubermenu configured, backup their Ubermenu config so it doesn't get overwritten
+            try
+            {
+                if (TAModsUpdater.ConfigUsesUbermenu())
+                {
+                    TAModsUpdater.BackupUbermenuConfig();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to backup Ubermenu config: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             // Run the update asynchronously
             TAModsUpdater.PerformUpdate().FireAndForget((ex) =>
             {
@@ -229,12 +243,30 @@ namespace TribesLauncherSharp
 
         private void OnUpdateFinished(object sender, EventArgs e)
         {
-            SetStatus(LauncherStatus.READY_TO_LAUNCH);
+            // If necessary, restore the Ubermenu config backup
+            Dispatcher.Invoke(new ThreadStart(() => {
+                try
+                {
+                    if (TAModsUpdater.ConfigUsesUbermenu())
+                    {
+                        TAModsUpdater.RestoreUbermenuConfig();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed to restore Ubermenu config: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+
+                SetStatus(LauncherStatus.READY_TO_LAUNCH);
+            }));
         }
 
         private void OnUpdateProgressTick(object sender, Updater.OnProgressTickEventArgs e)
         {
-            UpdateProgressBar.Value = 100 * e.Proportion;
+            if (Math.Abs(UpdateProgressBar.Value - 100 * e.Proportion) > 5)
+            {
+                UpdateProgressBar.Value = 100 * e.Proportion;
+            }
         }
 
         private void LauncherButton_Click(object sender, RoutedEventArgs e)
@@ -293,6 +325,29 @@ namespace TribesLauncherSharp
             if (!((Config)DataContext).Injection.InjectByProcessId)
             {
                 TALauncher.SetTarget(((Config)DataContext).Injection.RunningProcessName);
+            }
+
+            // Prompt to set up Ubermenu if need be
+            if (((Config)DataContext).PromptForUbermenu && !TAModsUpdater.ConfigUsesUbermenu())
+            {
+                var doSetUp = MessageBox.Show(
+                    "You have not configured Ubermenu, which allows you to configure TAMods in-game by pressing F1. Do you want to set it up now?", 
+                    "Ubermenu Configuration", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                switch (doSetUp)
+                {
+                    case MessageBoxResult.Yes:
+                        try
+                        {
+                            TAModsUpdater.SetupUbermenuPreset();
+                        } catch (Exception ex)
+                        {
+                            MessageBox.Show("Failed to enable Ubermenu: " + ex.Message, "Ubermenu Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
 
             // Check for an update

@@ -163,5 +163,47 @@ namespace TribesLauncherSharp
         public bool IsUpdateRequired() => GetFilesNeedingUpdate().Count > 0;
 
         public bool IsUpdateInProgress() => updateSemaphore.CurrentCount == 0;
+
+        #region Ubermenu Specific Handling
+        public bool ConfigUsesUbermenu()
+        {
+            if (!File.Exists($"{ConfigBasePath}/config.lua"))
+            {
+                return false;
+            }
+
+            var configLines = File.ReadAllLines($"{ConfigBasePath}/config.lua");
+            foreach (var line in configLines)
+            {
+                if (line.Trim() == "require(\"presets/ubermenu/preset\")" || line.Trim() == "require('presets/ubermenu/preset')")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void SetupUbermenuPreset()
+        {
+            File.AppendAllLines($"{ConfigBasePath}/config.lua", new string[] {
+                "",
+                "require(\"presets/ubermenu/preset\")"
+            });
+        }
+
+        public void BackupUbermenuConfig()
+        {
+            if (!File.Exists($"{ConfigBasePath}/presets/ubermenu/config/config.lua")) return;
+            File.Copy($"{ConfigBasePath}/presets/ubermenu/config/config.lua", "ubermenu_config_backup.lua", true);
+        }
+
+        public void RestoreUbermenuConfig()
+        {
+            if (!File.Exists("ubermenu_config_backup.lua")) return;
+            File.Copy("ubermenu_config_backup.lua", $"{ConfigBasePath}/presets/ubermenu/config/config.lua", true);
+            File.Delete("ubermenu_config_backup.lua");
+        }
+        #endregion
     }
 }

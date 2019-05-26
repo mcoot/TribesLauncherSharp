@@ -223,6 +223,13 @@ namespace TribesLauncherSharp
             set { SetProperty(ref updateUrl, value); }
         }
 
+        private bool promptForUbermenu = true;
+        public bool PromptForUbermenu
+        {
+            get { return promptForUbermenu; }
+            set { SetProperty(ref promptForUbermenu, value); }
+        }
+
         private static ISerializer serializer = new SerializerBuilder()
             .EmitDefaults()
             .Build();
