@@ -6,7 +6,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TribesLauncherSharp"
         mc:Ignorable="d"
-        Title="TribesLauncher" Height="252.667" Width="556.933" ResizeMode="NoResize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing">
+        Title="TribesLauncher" Height="252.667" Width="556.933" ResizeMode="NoResize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing" Icon="Resources/icon.ico">
     <Window.Resources>
         <ObjectDataProvider x:Key="enumLoginServerMode" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
