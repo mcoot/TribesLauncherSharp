@@ -23,6 +23,7 @@ namespace TribesLauncherSharp
         UPDATE_REQUIRED,
         UPDATE_IN_PROGRESS,
         READY_TO_INJECT,
+        WAITING_TO_INJECT,
         INJECTED
     }
 
@@ -31,6 +32,8 @@ namespace TribesLauncherSharp
     /// </summary>
     public partial class MainWindow : Window
     {
+        System.Timers.Timer AutoInjectTimer { get; set; }
+
         private Updater TAModsUpdater { get; set; }
         private InjectorLauncher TALauncher { get; set; }
 
@@ -46,6 +49,10 @@ namespace TribesLauncherSharp
             DataContext = new Config();
             InitializeComponent();
             TAModsNews = new News();
+
+            AutoInjectTimer = new System.Timers.Timer();
+            AutoInjectTimer.AutoReset = false;
+            AutoInjectTimer.Elapsed += OnAutoInjectTimerElapsed;
 
             string configPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/My Games/Tribes Ascend/TribesGame/config/";
             TAModsUpdater = new Updater(((Config)DataContext).UpdateUrl, ".", configPath);
@@ -81,6 +88,10 @@ namespace TribesLauncherSharp
                 case LauncherStatus.READY_TO_INJECT:
                     LauncherButton.Content = "Inject";
                     LauncherButton.IsEnabled = true;
+                    break;
+                case LauncherStatus.WAITING_TO_INJECT:
+                    LauncherButton.Content = "Injecting...";
+                    LauncherButton.IsEnabled = false;
                     break;
                 case LauncherStatus.INJECTED:
                     LauncherButton.Content = "Injected";
@@ -134,7 +145,7 @@ namespace TribesLauncherSharp
 
         private void Inject()
         {
-            if (Status != LauncherStatus.READY_TO_INJECT) return;
+            if (Status != LauncherStatus.READY_TO_INJECT && Status != LauncherStatus.WAITING_TO_INJECT) return;
 
             var config = (Config)DataContext;
 
@@ -165,6 +176,9 @@ namespace TribesLauncherSharp
             }
 
             SetStatus(LauncherStatus.INJECTED);
+
+            System.Media.SoundPlayer s = new System.Media.SoundPlayer(TribesLauncherSharp.Properties.Resources.blueplate);
+            s.Play();
         }
         #endregion
 
@@ -173,10 +187,19 @@ namespace TribesLauncherSharp
         {
             Dispatcher.Invoke(new ThreadStart(() =>
             {
+                Config config = DataContext as Config;
                 // If the config is set to only consider injection by process ID, only change state if we launched it
-                if (((Config)DataContext).Injection.InjectByProcessId && e.ProcessId != lastLaunchedProcessId) return;
+                if (config.Injection.InjectByProcessId && e.ProcessId != lastLaunchedProcessId) return;
 
-                SetStatus(LauncherStatus.READY_TO_INJECT);
+                if (config.Injection.IsAutomatic)
+                {
+                    SetStatus(LauncherStatus.WAITING_TO_INJECT);
+                    AutoInjectTimer.Interval = config.Injection.AutoInjectTimer * 1000;
+                    AutoInjectTimer.Start();
+                } else
+                {
+                    SetStatus(LauncherStatus.READY_TO_INJECT);
+                }
             }));
         }
 
@@ -197,7 +220,11 @@ namespace TribesLauncherSharp
         private void OnProcessPollingException(object sender, UnhandledExceptionEventArgs e)
         {
             MessageBox.Show("Failed to poll for game launch: " + (e.ExceptionObject as Exception).Message, "Process Polling Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            MessageBox.Show((e.ExceptionObject as Exception).StackTrace);
+        }
+
+        private void OnAutoInjectTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(new ThreadStart(() => Inject()));
         }
 
         private void OnUpdateFinished(object sender, EventArgs e)
