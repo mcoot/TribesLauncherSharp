@@ -377,6 +377,16 @@ namespace TribesLauncherSharp
         {
             ((Config)DataContext).Injection.Mode = InjectMode.Automatic;
         }
+
+        private void InfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            MessageBox.Show(
+                $"TribesLauncherSharp {version}\n\n" +
+                $"Application developed by mcoot. Please report bugs via Reddit (/u/avianistheterm) or Discord (mcoot#7419).\n\n" +
+                $"Information about TAMods can be found at tamods.org and the TAServer GitHub: https://github.com/Griffon26/taserver/",
+                "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
     #endregion
 }
