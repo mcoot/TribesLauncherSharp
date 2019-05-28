@@ -346,6 +346,14 @@ namespace TribesLauncherSharp
                 }
             }
 
+            // Prompt if the game path doesn't exist
+            if (!File.Exists(((Config)DataContext).GamePath))
+            {
+                MessageBox.Show(
+                    "The game path you have selected does not appear to exist. You will not be able to launch the game until this points to the location of TribesAscend.exe",
+                    "Game Path Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
             // Prompt to set up Ubermenu if need be
             if (((Config)DataContext).PromptForUbermenu && !TAModsUpdater.ConfigUsesUbermenu())
             {
@@ -428,6 +436,46 @@ namespace TribesLauncherSharp
         private void OpenConfigDirectoryButton_Click(object sender, RoutedEventArgs e)
         {
             System.Diagnostics.Process.Start(TAModsUpdater.ConfigBasePath);
+        }
+
+        private void GamePathChooseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Config config = (Config)DataContext;
+            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
+
+            if (Directory.Exists(new FileInfo(config.GamePath).Directory.FullName))
+            {
+                dialog.InitialDirectory = new FileInfo(config.GamePath).Directory.FullName;
+            }
+            dialog.DefaultExt = ".exe";
+            dialog.Filter = "Executable Files (*.exe)|*.exe|All Files|*";
+
+            bool? result = dialog.ShowDialog();
+
+            if (result == true)
+            {
+                config.GamePath = dialog.FileName;
+            }
+        }
+
+        private void CustomDLLPathChooseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Config config = (Config)DataContext;
+            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
+
+            if (Directory.Exists(new FileInfo(config.DLL.CustomDLLPath).Directory.FullName))
+            {
+                dialog.InitialDirectory = new FileInfo(config.DLL.CustomDLLPath).Directory.FullName;
+            }
+            dialog.DefaultExt = ".dll";
+            dialog.Filter = "DLL Files (*.dll)|*.dll|All Files|*";
+
+            bool? result = dialog.ShowDialog();
+
+            if (result == true)
+            {
+                config.DLL.CustomDLLPath = dialog.FileName;
+            }
         }
     }
     #endregion
