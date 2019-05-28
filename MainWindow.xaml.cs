@@ -443,9 +443,21 @@ namespace TribesLauncherSharp
             Config config = (Config)DataContext;
             Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
 
-            if (Directory.Exists(new FileInfo(config.GamePath).Directory.FullName))
+            FileInfo fi = null;
+            try
             {
-                dialog.InitialDirectory = new FileInfo(config.GamePath).Directory.FullName;
+                fi = new FileInfo(config.GamePath);
+            }
+            catch (ArgumentException) { }
+            catch (PathTooLongException) { }
+            catch (NotSupportedException) { }
+            if (!ReferenceEquals(fi, null) && Directory.Exists(fi.Directory.FullName))
+            {
+                dialog.InitialDirectory = fi.Directory.FullName;
+            }
+            else
+            {
+                dialog.InitialDirectory = Directory.GetCurrentDirectory();
             }
             dialog.DefaultExt = ".exe";
             dialog.Filter = "Executable Files (*.exe)|*.exe|All Files|*";
@@ -463,10 +475,21 @@ namespace TribesLauncherSharp
             Config config = (Config)DataContext;
             Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
 
-            if (Directory.Exists(new FileInfo(config.DLL.CustomDLLPath).Directory.FullName))
+            FileInfo fi = null;
+            try
             {
-                dialog.InitialDirectory = new FileInfo(config.DLL.CustomDLLPath).Directory.FullName;
+                fi = new FileInfo(config.DLL.CustomDLLPath);
+            } catch (ArgumentException) { }
+            catch (PathTooLongException) { }
+            catch (NotSupportedException) { }
+            if (!ReferenceEquals(fi, null) && Directory.Exists(fi.Directory.FullName))
+            {
+                dialog.InitialDirectory = fi.Directory.FullName;
+            } else
+            {
+                dialog.InitialDirectory = Directory.GetCurrentDirectory();
             }
+            
             dialog.DefaultExt = ".dll";
             dialog.Filter = "DLL Files (*.dll)|*.dll|All Files|*";
 
