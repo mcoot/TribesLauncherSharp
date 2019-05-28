@@ -327,6 +327,24 @@ namespace TribesLauncherSharp
                 TALauncher.SetTarget(((Config)DataContext).Injection.RunningProcessName);
             }
 
+            // Prompt to update if need be
+            var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var newsVersion = Version.Parse(TAModsNews.LatestLauncherVersion);
+            if (newsVersion > currentVersion)
+            {
+                var doGoToUpdate = MessageBox.Show(
+                    $"A launcher update is available. You have version {currentVersion.ToString()}, and version {newsVersion.ToString()} is available. Open update page?",
+                    "Launcher Update Available", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                switch (doGoToUpdate)
+                {
+                    case MessageBoxResult.Yes:
+                        System.Diagnostics.Process.Start(TAModsNews.LauncherUpdateLink);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
             // Prompt to set up Ubermenu if need be
             if (((Config)DataContext).PromptForUbermenu && !TAModsUpdater.ConfigUsesUbermenu())
             {

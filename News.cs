@@ -22,8 +22,9 @@ namespace TribesLauncherSharp
         public string HirezLoginServerHost { get; set; } = "23.239.17.171";
         public string CommunityLoginServerHost { get; set; } = "ta.kfk4ever.com";
 
-        public string LatestLauncherVersion { get; set; } = "0.1.0";
+        public string LatestLauncherVersion { get; set; } = "1.0.0.0";
         public string LauncherUpdateLink { get; set; } = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release/news.json";
+
 
         public void DownloadNews(string newsUrl)
         {
@@ -41,7 +42,7 @@ namespace TribesLauncherSharp
 
                 try
                 {
-                    LatestLauncherVersion = data.tribesLauncherSharpVersion;
+                    LatestLauncherVersion = data.latestLauncherSharpVersion;
                     LauncherUpdateLink = data.launcherUpdateLink;
                     HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
                     CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
