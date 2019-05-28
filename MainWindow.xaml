@@ -42,7 +42,11 @@
         </GroupBox>
         <GroupBox Header="TAMods" HorizontalAlignment="Left" Height="82" Margin="10,96,0,0" VerticalAlignment="Top" Width="350">
             <StackPanel>
-                <ComboBox x:Name="DLLModeDropdown" Margin="0,0,179.6,5" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding Path=DLL.Channel, Mode=TwoWay}" />
+                <StackPanel Height="30" Orientation="Horizontal" Margin="0,0,-0.2,0">
+                    <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding Path=DLL.Channel, Mode=TwoWay}" />
+                    <Button x:Name="OpenConfigDirectoryButton" Content="Open Config Directory" Width="123" Height="22.4" Margin="56,3,0,4.4" Click="OpenConfigDirectoryButton_Click"/>
+                    <Button x:Name="FullReinstallButton" Content="Full Reinstall" Width="75" Height="22.4" Margin="5,3,0,4.4" Click="FullReinstallButton_Click"/>
+                </StackPanel>
                 <StackPanel Height="52" Orientation="Horizontal" Margin="0,0,-0.2,0">
                     <TextBox x:Name="CustomDLLPathTextBox" Width="281" Margin="0,0,5,30" IsEnabled="{Binding Path=DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding Path=DLL.CustomDLLPath, Mode=TwoWay}" />
                     <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="51" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding Path=DLL.IsCustom, Mode=OneWay}" />

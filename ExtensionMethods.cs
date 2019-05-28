@@ -50,5 +50,18 @@ namespace TribesLauncherSharp
 
             return true;
         }
+
+        /// <summary>
+        /// LINQ extension to group into batches of a fixed size
+        /// If the number of items doesn't divide evenly, the last batch will be smaller
+        /// </summary>
+        /// <param name="items">The IEnumerable to perform batching on</param>
+        /// <param name="batchSize">The desired size of each batch</param>
+        /// <returns>An enumerable of enumerable batches</returns>
+        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> items, int batchSize)
+            => items
+            .Select((item, idx) => new { item, idx})
+            .GroupBy(x => x.idx / batchSize)
+            .Select(group => group.Select(x => x.item));
     }
 }

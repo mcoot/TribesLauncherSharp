@@ -243,6 +243,7 @@ namespace TribesLauncherSharp
 
         private void OnUpdateFinished(object sender, EventArgs e)
         {
+            UpdateProgressBar.Value = 100;
             // If necessary, restore the Ubermenu config backup
             Dispatcher.Invoke(new ThreadStart(() => {
                 try
@@ -404,6 +405,29 @@ namespace TribesLauncherSharp
                 $"Application developed by mcoot. Please report bugs via Reddit (/u/avianistheterm) or Discord (mcoot#7419).\n\n" +
                 $"Information about TAMods can be found at tamods.org and the TAServer GitHub: https://github.com/Griffon26/taserver/",
                 "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void FullReinstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            var doSetUp = MessageBox.Show(
+                    "Are you sure you want to perform a full reinstall of TAMods? The process will attempt to preserve Ubermenu configuration.",
+                    "Reinstall TAMods", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            switch (doSetUp)
+            {
+                case MessageBoxResult.Yes:
+                    // Delete the version XML
+                    TAModsUpdater.DeleteVersionManifest();
+                    SetStatus(LauncherStatus.UPDATE_REQUIRED);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void OpenConfigDirectoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(TAModsUpdater.ConfigBasePath);
         }
     }
     #endregion

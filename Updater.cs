@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -94,19 +95,43 @@ namespace TribesLauncherSharp
             Dictionary<string, double> filesToDownload = GetFilesNeedingUpdate();
 
             // Download to temp folder
-            using (var wc = new WebClient())
+            using (var httpClient = new HttpClient())
             {
-                foreach (var f in filesToDownload.Keys.Select((x, i) => new { Idx = i, Filename = x }))
+                // Download files in batches of 10, if there are at least 10 to download
+                var batchSize = filesToDownload.Count > 10 ? 10 : 1;
+                var fileBatches = filesToDownload.Keys
+                    .Select((f, i) =>
+                    {
+                        int dirSplitPos = Math.Max(0, Math.Max(f.LastIndexOf('/'), f.LastIndexOf('\\')));
+                        string relativeDir = f.Substring(0, dirSplitPos);
+                        string dir = $"{LocalBasePath}/tmp/{relativeDir}";
+                        return new { Idx = i, Filename = f, Directory = dir };
+                    })
+                    .Batch(batchSize)
+                    .Select((b, i) => new { Idx = i, Batch = b});
+                var numBatches = fileBatches.Count();
+                foreach (var batch in fileBatches)
                 {
-                    // Create directory if required
-                    int dirSplitPos = Math.Max(0, Math.Max(f.Filename.LastIndexOf('/'), f.Filename.LastIndexOf('\\')));
-                    string relativeDir = f.Filename.Substring(0, dirSplitPos);
-                    string dir = $"{LocalBasePath}/tmp/{relativeDir}";
-                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    // Create directories for this batch if required
+                    foreach (var file in batch.Batch)
+                    {
+                        if (!Directory.Exists(file.Directory)) Directory.CreateDirectory(file.Directory);
+                    }
 
-                    // Download the file
-                    await wc.DownloadFileTaskAsync(new Uri($"{RemoteBaseUrl}/{f.Filename}"), $"{LocalBasePath}/tmp/{f.Filename}");
-                    double pct = ((double)f.Idx + 1) / filesToDownload.Count;
+                    var tasks = batch.Batch.Select(async (file) =>
+                    {
+                        var response = await httpClient.GetAsync(new Uri($"{RemoteBaseUrl}/{file.Filename}"));
+                        using (var memStream = response.Content.ReadAsStreamAsync().Result)
+                        {
+                            using (var fileStream = File.Create($"{LocalBasePath}/tmp/{file.Filename}"))
+                            {
+                                memStream.CopyTo(fileStream);
+                            }
+                        }
+                    });
+                    await Task.WhenAll(tasks);
+
+                    double pct = ((double)batch.Idx + 1) / numBatches;
                     OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
                 }
             }
@@ -164,6 +189,14 @@ namespace TribesLauncherSharp
 
         public bool IsUpdateInProgress() => updateSemaphore.CurrentCount == 0;
 
+        public void DeleteVersionManifest()
+        {
+            if (File.Exists($"{LocalBasePath}/version.xml"))
+            {
+                File.Delete($"{LocalBasePath}/version.xml");
+            }
+        }
+
         #region Ubermenu Specific Handling
         public bool ConfigUsesUbermenu()
         {
@@ -204,6 +237,7 @@ namespace TribesLauncherSharp
             File.Copy("ubermenu_config_backup.lua", $"{ConfigBasePath}/presets/ubermenu/config/config.lua", true);
             File.Delete("ubermenu_config_backup.lua");
         }
+
         #endregion
     }
 }
