@@ -39,6 +39,8 @@ namespace TribesLauncherSharp
 
         private News TAModsNews { get; set; }
 
+        private LoginServerStatus ServerStatus { get; set; }
+
         private LauncherStatus Status { get; set; }
 
         private int lastLaunchedProcessId { get; set; } = 0;
@@ -49,6 +51,7 @@ namespace TribesLauncherSharp
             DataContext = new Config();
             InitializeComponent();
             TAModsNews = new News();
+            ServerStatus = new LoginServerStatus();
 
             AutoInjectTimer = new System.Timers.Timer();
             AutoInjectTimer.AutoReset = false;
@@ -151,7 +154,7 @@ namespace TribesLauncherSharp
             }
 
             // Set up polling for process start if we're doing it by ID
-            if (config.Injection.InjectByProcessId)
+            if (config.Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId)
             {
                 TALauncher.SetTarget(lastLaunchedProcessId);
             }
@@ -203,7 +206,7 @@ namespace TribesLauncherSharp
             {
                 Config config = DataContext as Config;
                 // If the config is set to only consider injection by process ID, only change state if we launched it
-                if (config.Injection.InjectByProcessId && e.ProcessId != lastLaunchedProcessId) return;
+                if (config.Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId && e.ProcessId != lastLaunchedProcessId) return;
 
                 if (config.Injection.IsAutomatic)
                 {
@@ -221,7 +224,7 @@ namespace TribesLauncherSharp
         {
             Dispatcher.Invoke(new ThreadStart(() =>
             {
-                if (((Config)DataContext).Injection.InjectByProcessId)
+                if (((Config)DataContext).Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId)
                 {
                     // Stop polling for the dead process
                     TALauncher.UnsetTarget();
@@ -292,6 +295,53 @@ namespace TribesLauncherSharp
             }
         }
 
+        private void InitInfoRichTextBox()
+        {
+            string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+            // Title para
+            var title = new Paragraph();
+            title.Inlines.Add(new Bold(new Run($"TribesLauncherSharp {version}")));
+
+            var devPara = new Paragraph(new Run("Launcher developed by mcoot"));
+
+            var reportPara = new Paragraph(new Run("Please report bugs via Discord (mcoot#7419) or Reddit (/u/avianistheterm)"));
+
+            var linksPara = new Paragraph(new Run("Information about TAMods and community servers can be found at:"));
+
+            var linksList = new System.Windows.Documents.List();
+
+            var linkTamodsOrg = new Hyperlink(new Run("TAMods.org"));
+            linkTamodsOrg.NavigateUri = new Uri("https://www.tamods.org");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTamodsOrg)));
+
+            var linkTAServerGithub = new Hyperlink(new Run("TAServer on GitHub"));
+            linkTAServerGithub.NavigateUri = new Uri("https://github.com/Griffon26/taserver/");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerGithub)));
+
+            var linkTAServerDiscord = new Hyperlink(new Run("TAServer Discord"));
+            linkTAServerDiscord.NavigateUri = new Uri("https://discordapp.com/invite/8enekHQ");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerDiscord)));
+
+            var linkAUDiscord = new Hyperlink(new Run("Australian Tribes Discord"));
+            linkAUDiscord.NavigateUri = new Uri("https://discord.gg/sWybn3v");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkAUDiscord)));
+
+            var linkEUDiscord = new Hyperlink(new Run("EU GOTY Tribes Discord"));
+            linkEUDiscord.NavigateUri = new Uri("https://discord.gg/e7T8Pxs");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkEUDiscord)));
+
+            var linkReddit = new Hyperlink(new Run("Tribes Subreddit"));
+            linkReddit.NavigateUri = new Uri("https://www.reddit.com/r/Tribes/");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkReddit)));
+
+            InfoRichTextBox.Document.Blocks.Add(title);
+            InfoRichTextBox.Document.Blocks.Add(devPara);
+            InfoRichTextBox.Document.Blocks.Add(reportPara);
+            InfoRichTextBox.Document.Blocks.Add(linksPara);
+            InfoRichTextBox.Document.Blocks.Add(linksList);
+        }
+
         private void MainAppWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (File.Exists("launcherconfig.yaml"))
@@ -312,6 +362,21 @@ namespace TribesLauncherSharp
             {
                 InjectionModeManualRadio.IsChecked = true;
             }
+            switch (((Config)DataContext).Injection.ProcessDetectionMode)
+            {
+                case ProcessDetectionMode.ProcessName:
+                    ProcessDetectionModeProcessNameRadio.IsChecked = true;
+                    break;
+                case ProcessDetectionMode.ProcessId:
+                    ProcessDetectionModeProcessIdRadio.IsChecked = true;
+                    break;
+                case ProcessDetectionMode.CommandLineString:
+                    ProcessDetectionModeCommandLineRadio.IsChecked = true;
+                    break;
+            }
+
+            // Setup the info text boxinfo box
+            InitInfoRichTextBox();
 
             // Download news
             try
@@ -323,7 +388,7 @@ namespace TribesLauncherSharp
             }
 
             // Set up polling for game process if we're doing it by name
-            if (!((Config)DataContext).Injection.InjectByProcessId)
+            if (((Config)DataContext).Injection.ProcessDetectionMode != ProcessDetectionMode.ProcessId)
             {
                 TALauncher.SetTarget(((Config)DataContext).Injection.RunningProcessName);
             }
@@ -405,15 +470,21 @@ namespace TribesLauncherSharp
             ((Config)DataContext).Injection.Mode = InjectMode.Automatic;
         }
 
-        private void InfoButton_Click(object sender, RoutedEventArgs e)
+        private void ProcessDetectionModeProcessNameRadio_Checked(object sender, RoutedEventArgs e)
         {
-            string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            MessageBox.Show(
-                $"TribesLauncherSharp {version}\n\n" +
-                $"Application developed by mcoot. Please report bugs via Reddit (/u/avianistheterm) or Discord (mcoot#7419).\n\n" +
-                $"Information about TAMods can be found at tamods.org and the TAServer GitHub: https://github.com/Griffon26/taserver/",
-                "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessName;
         }
+
+        private void ProcessDetectionModeProcessIdRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessId;
+        }
+
+        private void ProcessDetectionModeCommandLineRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.CommandLineString;
+        }
+
 
         private void FullReinstallButton_Click(object sender, RoutedEventArgs e)
         {
@@ -436,6 +507,28 @@ namespace TribesLauncherSharp
         private void OpenConfigDirectoryButton_Click(object sender, RoutedEventArgs e)
         {
             System.Diagnostics.Process.Start(TAModsUpdater.ConfigBasePath);
+        }
+
+        private void OpenGameDirectoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            Config config = (Config)DataContext;
+
+            FileInfo fi = null;
+            try
+            {
+                fi = new FileInfo(config.GamePath);
+            }
+            catch (ArgumentException) { }
+            catch (PathTooLongException) { }
+            catch (NotSupportedException) { }
+            if (!ReferenceEquals(fi, null) && Directory.Exists(fi.Directory.FullName))
+            {
+                System.Diagnostics.Process.Start(fi.Directory.FullName);
+            }
+            else
+            {
+                MessageBox.Show("Cannot navigate to game path: path invalid", "Game Path Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void GamePathChooseButton_Click(object sender, RoutedEventArgs e)
@@ -499,6 +592,36 @@ namespace TribesLauncherSharp
             {
                 config.DLL.CustomDLLPath = dialog.FileName;
             }
+        }
+
+        private void Hyperlink_MouseLeftButtonDown(object sender, MouseEventArgs e)
+        {
+            var hyperlink = (Hyperlink)sender;
+            System.Diagnostics.Process.Start(hyperlink.NavigateUri.ToString());
+        }
+
+        private void LoginServerModeDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // This needs to be reworked
+            // Needs to be made asynchronous for a start, the delay is bad
+
+            //var config = (Config)DataContext;
+            //if (config == null || TAModsNews == null) return;
+
+            //switch (config.LoginServer.LoginServer)
+            //{
+            //    case LoginServerMode.HiRez:
+            //        ServerStatus.Clear();
+            //        ServersOnlineLabel.Content = "?";
+            //        PlayersOnlineLabel.Content = "?";
+            //        break;
+            //    case LoginServerMode.Community:
+            //    case LoginServerMode.Custom:
+            //        ServerStatus.Update(config.LoginServer.IsCustom ? config.LoginServer.CustomLoginServerHost  : TAModsNews.CommunityLoginServerHost);
+            //        ServersOnlineLabel.Content = ServerStatus.ServersOnline != null ? $"{ServerStatus.ServersOnline}" : "?";
+            //        PlayersOnlineLabel.Content = ServerStatus.PlayersOnline != null ? $"{ServerStatus.PlayersOnline}" : "?";
+            //        break;
+            //}
         }
     }
     #endregion

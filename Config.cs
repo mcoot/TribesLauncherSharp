@@ -34,6 +34,13 @@ namespace TribesLauncherSharp
         Automatic
     }
 
+    enum ProcessDetectionMode
+    {
+        ProcessName,
+        ProcessId,
+        CommandLineString
+    }
+
     class Config : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -178,11 +185,19 @@ namespace TribesLauncherSharp
                 set { SetProperty(ref autoInjectTimer, value); }
             }
 
-            private bool injectByProcessId = false;
-            public bool InjectByProcessId
+            private ProcessDetectionMode processDetectionMode = ProcessDetectionMode.ProcessName;
+            public ProcessDetectionMode ProcessDetectionMode
             {
-                get { return injectByProcessId; }
-                set { SetProperty(ref injectByProcessId, value); }
+                get { return processDetectionMode; }
+                set { SetProperty(ref processDetectionMode, value); }
+            }
+
+            private bool injectByProcessId_deprecated = false;
+            [YamlMember(Alias = "InjectByProcessId")]
+            public bool InjectByProcessId_Deprecated
+            {
+                get { return injectByProcessId_deprecated; }
+                set { SetProperty(ref injectByProcessId_deprecated, value); }
             }
 
             private string runningProcessName = "tribesascend";

@@ -6,7 +6,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TribesLauncherSharp"
         mc:Ignorable="d"
-        Title="TribesLauncher" Height="252.667" Width="556.933" ResizeMode="NoResize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing" Icon="Resources/icon.ico">
+        Title="TribesLauncher" Height="352.533" Width="464.666" ResizeMode="CanMinimize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing" Icon="Resources/icon.ico">
     <Window.Resources>
         <ObjectDataProvider x:Key="enumLoginServerMode" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -28,44 +28,91 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <Button x:Name="LauncherButton" Content="Launch" HorizontalAlignment="Left" Margin="438,183,0,0" VerticalAlignment="Top" Width="96" Height="27" Click="LauncherButton_Click"/>
-        <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Height="27" Margin="10,183,0,0" VerticalAlignment="Top" Width="423"/>
-        <GroupBox Header="Injection" HorizontalAlignment="Left" Height="88" Margin="16,10,0,0" VerticalAlignment="Top" Width="206">
-            <StackPanel>
-                <RadioButton x:Name="InjectionModeManualRadio" Content="Manual" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5,0,0" GroupName="InjectionModeRadio" Checked="InjectionModeManualRadio_Checked" />
-                <StackPanel Height="41" Margin="0,0,0.4,0" Orientation="Horizontal">
-                    <RadioButton x:Name="InjectionModeAutoRadio" Content="Automatic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5,0,0" GroupName="InjectionModeRadio" Checked="InjectionModeAutoRadio_Checked" />
-                    <Slider x:Name="InjectionModeAutoSlider" HorizontalAlignment="Left" Height="34" Margin="5,5,0,0" VerticalAlignment="Top" Width="90" TickPlacement="BottomRight" Minimum="5" Maximum="45" TickFrequency="5" Value="{Binding Path=Injection.AutoInjectTimer, Mode=TwoWay}" IsEnabled="{Binding Path=Injection.IsAutomatic, Mode=OneWay}" />
-                    <Label x:Name="InjectionModeAutoLabel" Content="{Binding Path=Injection.AutoInjectTimer}" IsEnabled="{Binding Path=Injection.IsAutomatic, Mode=OneWay}" />
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="TAMods" HorizontalAlignment="Left" Height="82" Margin="10,96,0,0" VerticalAlignment="Top" Width="350">
-            <StackPanel>
-                <StackPanel Height="30" Orientation="Horizontal" Margin="0,0,-0.2,0">
-                    <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding Path=DLL.Channel, Mode=TwoWay}" />
-                    <Button x:Name="OpenConfigDirectoryButton" Content="Open Config Directory" Width="123" Height="22.4" Margin="56,3,0,4.4" Click="OpenConfigDirectoryButton_Click"/>
-                    <Button x:Name="FullReinstallButton" Content="Full Reinstall" Width="75" Height="22.4" Margin="5,3,0,4.4" Click="FullReinstallButton_Click"/>
-                </StackPanel>
-                <StackPanel Height="52" Orientation="Horizontal" Margin="0,0,-0.2,0">
-                    <TextBox x:Name="CustomDLLPathTextBox" Width="281" Margin="0,0,5,30" IsEnabled="{Binding Path=DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding Path=DLL.CustomDLLPath, Mode=TwoWay}" />
-                    <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="51" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding Path=DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Login Server" HorizontalAlignment="Left" Height="80" Margin="365,98,0,0" VerticalAlignment="Top" Width="169">
-            <StackPanel>
-                <ComboBox x:Name="LoginServerModeDropdown" HorizontalAlignment="Left" Margin="0,5" VerticalAlignment="Top" Width="157" ItemsSource="{Binding Source={StaticResource enumLoginServerMode}}" SelectedItem="{Binding Path=LoginServer.LoginServer, Mode=TwoWay}" />
-                <TextBox x:Name="CustomLoginServerTextBox" HorizontalAlignment="Left" Height="23" Margin="0" TextWrapping="Wrap" Text="{Binding Path=LoginServer.CustomLoginServerHost, Mode=TwoWay}" VerticalAlignment="Top" Width="157" IsEnabled="{Binding Path=LoginServer.IsCustom, Mode=OneWay}"/>
-            </StackPanel>
-        </GroupBox>
-        <GroupBox Header="Game Path" HorizontalAlignment="Left" Height="53" Margin="227,45,0,0" VerticalAlignment="Top" Width="307" RenderTransformOrigin="0.494,0.765">
-            <StackPanel Orientation="Horizontal">
-                <TextBox x:Name="GamePathTextBox" Width="232" Margin="0,0,5,2.2" Height="22" Text="{Binding Path=GamePath, Mode=TwoWay}" MaxLines="1"/>
-                <Button x:Name="GamePathChooseButton" Content="Choose" Width="51" Margin="0,2,0,2.8" RenderTransformOrigin="1.333,0.582" Height="22.4" Click="GamePathChooseButton_Click"/>
-            </StackPanel>
-        </GroupBox>
-        <Button x:Name="InfoButton" Content="Info" HorizontalAlignment="Left" Margin="459,10,0,0" VerticalAlignment="Top" Width="75" Click="InfoButton_Click"/>
+        <TabControl Margin="0,0,0.4,0" Height="281" VerticalAlignment="Top">
+            <TabItem x:Name="SetupTab" Header="Setup" >
+                <Grid>
+                    <GroupBox Header="Login Server" HorizontalAlignment="Left" Height="80" Margin="10,162,0,0" VerticalAlignment="Top" Width="432">
+                        <StackPanel Margin="0" Orientation="Horizontal">
+                            <StackPanel Width="123" Margin="0,0,0,-0.4">
+                                <StackPanel Height="28" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label Content="Servers Online:" Margin="0,3,0,-3" Visibility="Hidden"/>
+                                    <Label x:Name="ServersOnlineLabel" Content="?" MinWidth="36" Margin="0,3,0,-3" Visibility="Hidden"/>
+                                </StackPanel>
+                                <StackPanel Height="28" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Label Content="Players Online:" Margin="0,3,0,-3" Visibility="Hidden"/>
+                                    <Label x:Name="PlayersOnlineLabel" Content="?" MinWidth="36" Margin="0,3,0,-3" Visibility="Hidden"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Width="86" Margin="0,0,0,-0.4"/>
+                            <StackPanel Width="208" Margin="0,0,0,-0.4">
+                                <ComboBox x:Name="LoginServerModeDropdown" Margin="0,5" VerticalAlignment="Top" ItemsSource="{Binding Source={StaticResource enumLoginServerMode}}" SelectedItem="{Binding LoginServer.LoginServer, Mode=TwoWay}" Height="23" SelectionChanged="LoginServerModeDropdown_SelectionChanged" />
+                                <TextBox x:Name="CustomLoginServerTextBox" Height="23" TextWrapping="Wrap" Text="{Binding LoginServer.CustomLoginServerHost, Mode=TwoWay}" VerticalAlignment="Top" IsEnabled="{Binding LoginServer.IsCustom, Mode=OneWay}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Game Path" Height="53" Margin="10,10,10,0" VerticalAlignment="Top" RenderTransformOrigin="0.494,0.765">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox x:Name="GamePathTextBox" Width="356" Margin="0,3,5,5.4" Height="22" Text="{Binding GamePath, Mode=TwoWay}" MaxLines="1"/>
+                            <Button x:Name="GamePathChooseButton" Content="Choose" Width="51" Margin="0,2,0,2.8" RenderTransformOrigin="1.333,0.582" Height="22.4" Click="GamePathChooseButton_Click"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Injection" HorizontalAlignment="Left" Height="81" Margin="10,68,0,0" VerticalAlignment="Top" Width="432">
+                        <StackPanel Margin="0,5,0,0">
+                            <RadioButton x:Name="InjectionModeManualRadio" Content="Manual" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0" GroupName="InjectionModeRadio" Checked="InjectionModeManualRadio_Checked" />
+                            <StackPanel Height="41" Margin="0,0,0.4,0" Orientation="Horizontal">
+                                <RadioButton x:Name="InjectionModeAutoRadio" Content="Automatic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5,0,0" GroupName="InjectionModeRadio" Checked="InjectionModeAutoRadio_Checked" />
+                                <Slider x:Name="InjectionModeAutoSlider" HorizontalAlignment="Left" Height="34" Margin="5,5,0,0" VerticalAlignment="Top" Width="90" TickPlacement="BottomRight" Minimum="5" Maximum="45" TickFrequency="5" Value="{Binding Injection.AutoInjectTimer, Mode=TwoWay}" IsEnabled="{Binding Injection.IsAutomatic, Mode=OneWay}" />
+                                <Label x:Name="InjectionModeAutoLabel" Content="{Binding Injection.AutoInjectTimer}" IsEnabled="{Binding Injection.IsAutomatic, Mode=OneWay}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="AdvancedTab" Header="Advanced">
+                <Grid Margin="0">
+                    <GroupBox Header="DLL" Height="82" Margin="10,98,10,0" VerticalAlignment="Top">
+                        <StackPanel>
+                            <StackPanel Height="30" Orientation="Horizontal" Margin="0,0,-0.2,0">
+                                <Label Content="Release Channel:" Margin="0,0,0,0.4"/>
+                                <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5.4" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding DLL.Channel, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Height="52" Orientation="Horizontal" Margin="0,0,-0.2,0">
+                                <TextBox x:Name="CustomDLLPathTextBox" Width="353" Margin="0,0,5,30" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding DLL.CustomDLLPath, Mode=TwoWay}" />
+                                <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="51" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                    <Button x:Name="OpenConfigDirectoryButton" Content="Open Config Directory" Margin="223,10,0,0" Click="OpenConfigDirectoryButton_Click" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="135"/>
+                    <Button x:Name="FullReinstallButton" Content="Reinstall TAMods" Margin="223,71,0,0" Click="FullReinstallButton_Click" Height="22" VerticalAlignment="Top" HorizontalAlignment="Left" Width="115"/>
+                    <Button x:Name="OpenGameDirectoryButton" Content="Open Game Directory" Margin="223,39,0,0" Click="OpenGameDirectoryButton_Click" Height="24" VerticalAlignment="Top" HorizontalAlignment="Left" Width="135"/>
+                    <GroupBox Header="Process Detection" Height="83" Margin="0,10,234,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="208">
+                        <StackPanel Margin="0,5,0,0">
+                            <RadioButton x:Name="ProcessDetectionModeProcessNameRadio" Content="By Process Name" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeProcessNameRadio_Checked" />
+                            <RadioButton x:Name="ProcessDetectionModeProcessIdRadio" Content="By Process ID" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeProcessIdRadio_Checked" Margin="0,3,0,0" />
+                            <RadioButton x:Name="ProcessDetectionModeCommandLineRadio" Content="By Command Line String" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeCommandLineRadio_Checked" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Extra Command Line Arguments" Height="57" Margin="10,185,10,0" VerticalAlignment="Top">
+                        <TextBox HorizontalAlignment="Left" Margin="0,7,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="408" MaxLines="1" Text="{Binding CustomArguments, Mode=TwoWay}" Height="22.4"/>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="InfoTab" Header="Info">
+                <Grid Margin="0">
+                    <RichTextBox x:Name="InfoRichTextBox" Margin="0" IsReadOnly="True" >
+                        <RichTextBox.Resources>
+                            <Style TargetType="Hyperlink">
+                                <Setter Property="Cursor" Value="Hand" />
+                                <EventSetter Event="MouseLeftButtonDown" Handler="Hyperlink_MouseLeftButtonDown" />
+                            </Style>
+                        </RichTextBox.Resources>
+                        <FlowDocument/>
+                    </RichTextBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <Button x:Name="LauncherButton" Content="Launch" Margin="346,0,10.4,10" Click="LauncherButton_Click" Height="27" VerticalAlignment="Bottom"/>
+        <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Margin="10,0,0,10" Width="331" Height="27" VerticalAlignment="Bottom"/>
 
     </Grid>
 </Window>
