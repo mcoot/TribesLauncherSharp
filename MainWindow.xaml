@@ -50,13 +50,13 @@
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
-                    <GroupBox Header="Game Path" Height="53" Margin="10,10,10,0" VerticalAlignment="Top" RenderTransformOrigin="0.494,0.765">
+                    <GroupBox Header="Game Path" Height="58" Margin="10,10,10,0" VerticalAlignment="Top" RenderTransformOrigin="0.494,0.765">
                         <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="GamePathTextBox" Width="356" Margin="0,3,5,5.4" Height="22" Text="{Binding GamePath, Mode=TwoWay}" MaxLines="1"/>
-                            <Button x:Name="GamePathChooseButton" Content="Choose" Width="51" Margin="0,2,0,2.8" RenderTransformOrigin="1.333,0.582" Height="22.4" Click="GamePathChooseButton_Click"/>
+                            <TextBox x:Name="GamePathTextBox" Width="346" Margin="0,3,5,5.4" Height="22" Text="{Binding GamePath, Mode=TwoWay}" MaxLines="1"/>
+                            <Button x:Name="GamePathChooseButton" Content="Choose" Width="55" Margin="0,5,0,7.2" RenderTransformOrigin="1.333,0.582" Height="22.4" Click="GamePathChooseButton_Click"/>
                         </StackPanel>
                     </GroupBox>
-                    <GroupBox Header="Injection" HorizontalAlignment="Left" Height="81" Margin="10,68,0,0" VerticalAlignment="Top" Width="432">
+                    <GroupBox Header="Injection" HorizontalAlignment="Left" Height="81" Margin="10,75,0,0" VerticalAlignment="Top" Width="432">
                         <StackPanel Margin="0,5,0,0">
                             <RadioButton x:Name="InjectionModeManualRadio" Content="Manual" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0" GroupName="InjectionModeRadio" Checked="InjectionModeManualRadio_Checked" />
                             <StackPanel Height="41" Margin="0,0,0.4,0" Orientation="Horizontal">
@@ -77,8 +77,8 @@
                                 <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5.4" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding DLL.Channel, Mode=TwoWay}" />
                             </StackPanel>
                             <StackPanel Height="52" Orientation="Horizontal" Margin="0,0,-0.2,0">
-                                <TextBox x:Name="CustomDLLPathTextBox" Width="353" Margin="0,0,5,30" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding DLL.CustomDLLPath, Mode=TwoWay}" />
-                                <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="51" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
+                                <TextBox x:Name="CustomDLLPathTextBox" Width="346" Margin="0,0,5,30" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding DLL.CustomDLLPath, Mode=TwoWay}" />
+                                <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="55" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>

@@ -392,7 +392,6 @@ namespace TribesLauncherSharp
             // Set up polling for game process if we're doing it by name
             if (config.Injection.ProcessDetectionMode != ProcessDetectionMode.ProcessId)
             {
-                MessageBox.Show($"aaa = {config.Injection.ProcessDetectionMode == ProcessDetectionMode.CommandLineString}");
                 TALauncher.SetTarget(config.Injection.RunningProcessName, config.Injection.ProcessDetectionMode == ProcessDetectionMode.CommandLineString);
             }
 
