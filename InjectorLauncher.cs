@@ -111,20 +111,23 @@ namespace TribesLauncherSharp
         private class ProcessTarget
         {
             private bool TargetById { get; }
+            private bool MatchHostXArg { get; }
             private string TargetName { get; }
             private int TargetId { get; }
 
 
-            public ProcessTarget(int processId)
+            public ProcessTarget(int processId, bool matchHostXArg)
             {
                 TargetById = true;
+                MatchHostXArg = matchHostXArg;
                 TargetId = processId;
                 TargetName = null;
             }
 
-            public ProcessTarget(string processName)
+            public ProcessTarget(string processName, bool matchHostXArg)
             {
                 TargetById = false;
+                MatchHostXArg = matchHostXArg;
                 TargetId = 0;
                 TargetName = processName;
             }
@@ -144,8 +147,38 @@ namespace TribesLauncherSharp
                 } else
                 {
                     var procs = Process.GetProcessesByName(TargetName);
-                    return procs.Length > 0 ? procs[0] : null;
+                    if (procs.Length == 0) return null;
+                    
+                    if (MatchHostXArg)
+                    {
+                        // Find an arg matching the string "hostx"
+                        // i.e. a client, not a server
+                        return GetProcessWithMatchingCommandLine(procs, TargetName, "-hostx=");
+                    } else
+                    {
+                        return procs[0];
+                    }
                 }
+            }
+
+            private Process GetProcessWithMatchingCommandLine(IEnumerable<Process> processes, string procName, string needle)
+            {
+                string wmiQuery = $"select ProcessId, CommandLine from Win32_Process where Name='{procName}'";
+                System.Management.ManagementObjectSearcher searcher = new System.Management.ManagementObjectSearcher(wmiQuery);
+                System.Management.ManagementObjectCollection ret = searcher.Get();
+                foreach (System.Management.ManagementObject obj in ret)
+                {
+                    if (obj is null || obj["CommandLine"] is null) continue;
+                    string args = obj["CommandLine"].ToString();
+                    if (args.IndexOf(needle) != -1)
+                    {
+                        // Find the actual process corresponding...
+                        int procId = (int)obj["ProcessId"];
+                        return processes.Where((p) => p.Id == procId).DefaultIfEmpty(null).First();
+                    }
+                }
+
+                return null;
             }
         }
 
@@ -197,14 +230,14 @@ namespace TribesLauncherSharp
             }
         }
 
-        public void SetTarget(string processName)
+        public void SetTarget(string processName, bool matchHostXArg)
         {
-            Target = new ProcessTarget(processName);
+            Target = new ProcessTarget(processName, matchHostXArg);
         }
 
-        public void SetTarget(int processId)
+        public void SetTarget(int processId, bool matchHostXArg)
         {
-            Target = new ProcessTarget(processId);
+            Target = new ProcessTarget(processId, matchHostXArg);
         }
 
         public void UnsetTarget()

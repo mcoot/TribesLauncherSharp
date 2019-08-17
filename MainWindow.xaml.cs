@@ -156,7 +156,7 @@ namespace TribesLauncherSharp
             // Set up polling for process start if we're doing it by ID
             if (config.Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId)
             {
-                TALauncher.SetTarget(lastLaunchedProcessId);
+                TALauncher.SetTarget(lastLaunchedProcessId, false);
             }
         }
 
@@ -355,14 +355,16 @@ namespace TribesLauncherSharp
                     MessageBox.Show("Failed to read launcher configuration: " + ex.Message, "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            if (((Config)DataContext).Injection.Mode == InjectMode.Automatic)
+            Config config = (Config)DataContext;
+
+            if (config.Injection.Mode == InjectMode.Automatic)
             {
                 InjectionModeAutoRadio.IsChecked = true;
             } else
             {
                 InjectionModeManualRadio.IsChecked = true;
             }
-            switch (((Config)DataContext).Injection.ProcessDetectionMode)
+            switch (config.Injection.ProcessDetectionMode)
             {
                 case ProcessDetectionMode.ProcessName:
                     ProcessDetectionModeProcessNameRadio.IsChecked = true;
@@ -381,16 +383,17 @@ namespace TribesLauncherSharp
             // Download news
             try
             {
-                TAModsNews.DownloadNews($"{((Config)DataContext).UpdateUrl}/news.json");
+                TAModsNews.DownloadNews($"{config.UpdateUrl}/news.json");
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to download server information: " + ex.Message, "News Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             // Set up polling for game process if we're doing it by name
-            if (((Config)DataContext).Injection.ProcessDetectionMode != ProcessDetectionMode.ProcessId)
+            if (config.Injection.ProcessDetectionMode != ProcessDetectionMode.ProcessId)
             {
-                TALauncher.SetTarget(((Config)DataContext).Injection.RunningProcessName);
+                MessageBox.Show($"aaa = {config.Injection.ProcessDetectionMode == ProcessDetectionMode.CommandLineString}");
+                TALauncher.SetTarget(config.Injection.RunningProcessName, config.Injection.ProcessDetectionMode == ProcessDetectionMode.CommandLineString);
             }
 
             // Prompt to update if need be
@@ -420,7 +423,7 @@ namespace TribesLauncherSharp
             }
 
             // Prompt to set up Ubermenu if need be
-            if (((Config)DataContext).PromptForUbermenu && !TAModsUpdater.ConfigUsesUbermenu())
+            if (config.PromptForUbermenu && !TAModsUpdater.ConfigUsesUbermenu())
             {
                 var doSetUp = MessageBox.Show(
                     "You have not configured Ubermenu, which allows you to configure TAMods in-game by pressing F1. Do you want to set it up now?", 

@@ -6,7 +6,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:TribesLauncherSharp"
         mc:Ignorable="d"
-        Title="TribesLauncher" Height="352.533" Width="464.666" ResizeMode="CanMinimize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing" Icon="Resources/icon.ico">
+        Title="TribesLauncher" Height="358.933" Width="464.666" ResizeMode="CanMinimize" Loaded="MainAppWindow_Loaded" Closing="MainAppWindow_Closing" Icon="Resources/icon.ico">
     <Window.Resources>
         <ObjectDataProvider x:Key="enumLoginServerMode" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -89,7 +89,7 @@
                         <StackPanel Margin="0,5,0,0">
                             <RadioButton x:Name="ProcessDetectionModeProcessNameRadio" Content="By Process Name" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeProcessNameRadio_Checked" />
                             <RadioButton x:Name="ProcessDetectionModeProcessIdRadio" Content="By Process ID" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeProcessIdRadio_Checked" Margin="0,3,0,0" />
-                            <RadioButton x:Name="ProcessDetectionModeCommandLineRadio" Content="By Command Line String" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeCommandLineRadio_Checked" Margin="0,3,0,0" />
+                            <RadioButton x:Name="ProcessDetectionModeCommandLineRadio" Content="By Command Line String" HorizontalAlignment="Left" VerticalAlignment="Top" GroupName="ProcessDetectionModeRadio" Checked="ProcessDetectionModeCommandLineRadio_Checked" Margin="0,3,0,0" Visibility="Hidden" />
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Header="Extra Command Line Arguments" Height="57" Margin="10,185,10,0" VerticalAlignment="Top">
@@ -111,8 +111,8 @@
                 </Grid>
             </TabItem>
         </TabControl>
-        <Button x:Name="LauncherButton" Content="Launch" Margin="346,0,10.4,10" Click="LauncherButton_Click" Height="27" VerticalAlignment="Bottom"/>
-        <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Margin="10,0,0,10" Width="331" Height="27" VerticalAlignment="Bottom"/>
+        <Button x:Name="LauncherButton" Content="Launch" Margin="346,0,10.4,9.6" Click="LauncherButton_Click" Height="27" VerticalAlignment="Bottom"/>
+        <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Margin="10,0,0,9.6" Width="331" Height="27" VerticalAlignment="Bottom"/>
 
     </Grid>
 </Window>
