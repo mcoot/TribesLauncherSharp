@@ -28,6 +28,9 @@ namespace TribesLauncherSharp
 
         public void DownloadNews(string newsUrl)
         {
+            // Allow TLS 1.2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
             using (var wc = new WebClient())
             {
                 var rawData = wc.DownloadString(newsUrl);
