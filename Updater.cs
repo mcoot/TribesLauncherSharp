@@ -11,6 +11,12 @@ using System.Xml.Linq;
 
 namespace TribesLauncherSharp
 {
+    public class Package
+    {
+        public string Name { get; set; }
+        public string Version { get; set; }
+    }
+
     class Updater
     {
         private SemaphoreSlim updateSemaphore;

@@ -97,9 +97,44 @@
                     </GroupBox>
                 </Grid>
             </TabItem>
+            <TabItem x:Name="PackagesTab" Header="Packages">
+                <Grid >
+                    <ListView x:Name="PackageListView" Height="217" Margin="10,26,135.8,0" VerticalAlignment="Top">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="Package" Width="227" DisplayMemberBinding="{Binding Name}"/>
+                                <GridViewColumn Header="Version" Width="75" DisplayMemberBinding="{Binding Version}" />
+                            </GridView>
+                        </ListView.View>
+                        <local:Package Name="TAMods" Version="1.2.0"/>
+                        <local:Package Name="Custom Assets Bundle" Version="1.0.0"/>
+                        <local:Package Name="TrCTF-Blues" Version="1.0.0"/>
+                    </ListView>
+                    <Label x:Name="PackageStatusLabel" Content="Additional Packages" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                    <Button x:Name="PackageInstallButton" Content="Install" Margin="0,215,10.8,0" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5" Height="27" HorizontalAlignment="Right" Width="120">
+                    </Button>
+                    <RichTextBox x:Name="PackageDescriptionRichTextBox" Height="182" Margin="0,26,10.8,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="120" IsReadOnly="True">
+                        <FlowDocument>
+                            <Paragraph>
+                                <Run Text="Some Package"/>
+                                <LineBreak/>
+                                <Run Text="v1.0"/>
+                                <LineBreak/>
+                                <Run/>
+                                <LineBreak/>
+                                <Run Text="Description of the package"/>
+                            </Paragraph>
+                        </FlowDocument>
+                    </RichTextBox>
+                </Grid>
+            </TabItem>
             <TabItem x:Name="InfoTab" Header="Info">
                 <Grid Margin="0">
-                    <RichTextBox x:Name="InfoRichTextBox" Margin="0" IsReadOnly="True" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46*"/>
+                        <ColumnDefinition Width="105*"/>
+                    </Grid.ColumnDefinitions>
+                    <RichTextBox x:Name="InfoRichTextBox" Margin="0,0,-0.2,-0.2" IsReadOnly="True" Grid.ColumnSpan="2" >
                         <RichTextBox.Resources>
                             <Style TargetType="Hyperlink">
                                 <Setter Property="Cursor" Value="Hand" />
