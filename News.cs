@@ -40,7 +40,7 @@ namespace TribesLauncherSharp
             }
                 catch (Exception ex)
             {
-                throw new NewsParsingException("Failed to download update news data", ex);
+                throw new NewsParsingException($"Failed to download update news data: {ex.Message}", ex);
             }
 
             try
@@ -49,7 +49,7 @@ namespace TribesLauncherSharp
             }
             catch (Exception ex)
             {
-                throw new NewsParsingException("Failed to parse update news data", ex);
+                throw new NewsParsingException($"Failed to parse update news data: {ex.Message}", ex);
             }
         }
     }
