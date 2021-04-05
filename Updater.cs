@@ -11,6 +11,31 @@ using System.Xml.Linq;
 
 namespace TribesLauncherSharp
 {
+    sealed class RemoteObjectManager
+    {
+        private static readonly string baseUrl = "https://tamods-update.s3-ap-southeast-2.amazonaws.com";
+
+        private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly WebClient webClient = new WebClient();
+
+        public static string DownloadObjectAsString(string key)
+        {
+            return webClient.DownloadString($"{baseUrl}/{key}");
+        }
+
+        public static async Task DownloadObjectToFile(string key, string filePath)
+        {
+            var response = await httpClient.GetAsync(new Uri($"{baseUrl}/{key}"));
+            using (Stream memStream = await response.Content.ReadAsStreamAsync())
+            {
+                using (Stream fileStream = File.Create(filePath))
+                {
+                    await memStream.CopyToAsync(fileStream);
+                }
+            }
+        }
+    }
+    
     class Updater
     {
         private SemaphoreSlim updateSemaphore;

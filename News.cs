@@ -7,57 +7,57 @@ using System.Threading.Tasks;
 using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Versioning;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace TribesLauncherSharp
 {
+    class LoginServer
+    {
+        public string Name { get; private set; }
+        public string Address { get; private set; }
+        public bool Default { get; private set; }
+    }
+
     class News
     {
-        public class NewsParsingException : Exception
+        public SemanticVersion LatestLauncherVersion { get; private set; }
+        public string LauncherUpdateLink { get; private set; }
+        public List<LoginServer> LoginServers { get; private set; }
+
+        private static IDeserializer deserializer = new DeserializerBuilder()
+            .WithNamingConvention(new CamelCaseNamingConvention())
+            .IgnoreUnmatchedProperties()
+            .Build();
+
+        public static News DownloadNews()
         {
-            public NewsParsingException() : base() { }
-            public NewsParsingException(string message) : base(message) { }
-            public NewsParsingException(string message, Exception inner) : base(message, inner) { }
-        }
-
-        public string HirezLoginServerHost { get; set; } = "23.239.17.171";
-        public string CommunityLoginServerHost { get; set; } = "ta.kfk4ever.com";
-
-        public string LatestLauncherVersion { get; set; } = "1.0.0.0";
-        public string LauncherUpdateLink { get; set; } = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release/news.json";
-
-
-        public static News DownloadNews(string newsUrl)
-        {
-            var news = new News();
-
-            // Allow TLS 1.2
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-
-            using (var wc = new WebClient())
+            string rawData;
+            try
             {
-                var rawData = wc.DownloadString(newsUrl);
-                dynamic data = null;
-                try
-                {
-                    data = JObject.Parse(rawData);
-                } catch (JsonReaderException ex)
-                {
-                    throw new NewsParsingException("Failed to parse update news data", ex);
-                }
-
-                try
-                {
-                    news.LatestLauncherVersion = data.latestLauncherSharpVersion;
-                    news.LauncherUpdateLink = data.launcherUpdateLink;
-                    news.HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
-                    news.CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
-                } catch (RuntimeBinderException ex)
-                {
-                    throw new NewsParsingException("Missing expected fields in update news data", ex);
-                }
+                rawData = RemoteObjectManager.DownloadObjectAsString("news.yaml");
+            }
+                catch (Exception ex)
+            {
+                throw new NewsParsingException("Failed to download update news data", ex);
             }
 
-            return news;
+            try
+            {
+                return deserializer.Deserialize<News>(rawData);
+            }
+            catch (Exception ex)
+            {
+                throw new NewsParsingException("Failed to parse update news data", ex);
+            }
         }
+    }
+
+    public class NewsParsingException : Exception
+    {
+        public NewsParsingException() : base() { }
+        public NewsParsingException(string message) : base(message) { }
+        public NewsParsingException(string message, Exception inner) : base(message, inner) { }
     }
 }

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using NuGet.Versioning;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +34,8 @@ namespace TribesLauncherSharp
     /// </summary>
     public partial class MainWindow : Window
     {
+        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.0.0");
+
         System.Timers.Timer AutoInjectTimer { get; set; }
 
         private Updater TAModsUpdater { get; set; }
@@ -46,6 +50,10 @@ namespace TribesLauncherSharp
         private int lastLaunchedProcessId { get; set; } = 0;
 
         public MainWindow() {
+            // Allow TLS 1.2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+
             Status = LauncherStatus.READY_TO_LAUNCH;
 
             DataContext = new Config();
@@ -137,11 +145,11 @@ namespace TribesLauncherSharp
             string loginServerHost = config.LoginServer.CustomLoginServerHost;
             if (config.LoginServer.LoginServer == LoginServerMode.HiRez)
             {
-                loginServerHost = TAModsNews.HirezLoginServerHost;
+                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "HiRez").Address;
             }
             else if (config.LoginServer.LoginServer == LoginServerMode.Community)
             {
-                loginServerHost = TAModsNews.CommunityLoginServerHost;
+                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "Community").Address;
             }
 
             try
@@ -383,7 +391,7 @@ namespace TribesLauncherSharp
             // Download news
             try
             {
-                TAModsNews = News.DownloadNews($"{config.UpdateUrl}/news.json");
+                TAModsNews = News.DownloadNews();
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to download server information: " + ex.Message, "News Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -396,12 +404,10 @@ namespace TribesLauncherSharp
             }
 
             // Prompt to update if need be
-            var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var newsVersion = Version.Parse(TAModsNews.LatestLauncherVersion);
-            if (newsVersion > currentVersion)
+            if (TAModsNews.LatestLauncherVersion > LauncherVersion)
             {
                 var doGoToUpdate = MessageBox.Show(
-                    $"A launcher update is available. You have version {currentVersion.ToString()}, and version {newsVersion.ToString()} is available. Open update page?",
+                    $"A launcher update is available. You have version {LauncherVersion}, and version {TAModsNews.LatestLauncherVersion} is available. Open update page?",
                     "Launcher Update Available", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
                 switch (doGoToUpdate)
                 {
