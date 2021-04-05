@@ -26,8 +26,10 @@ namespace TribesLauncherSharp
         public string LauncherUpdateLink { get; set; } = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release/news.json";
 
 
-        public void DownloadNews(string newsUrl)
+        public static News DownloadNews(string newsUrl)
         {
+            var news = new News();
+
             // Allow TLS 1.2
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
@@ -45,15 +47,17 @@ namespace TribesLauncherSharp
 
                 try
                 {
-                    LatestLauncherVersion = data.latestLauncherSharpVersion;
-                    LauncherUpdateLink = data.launcherUpdateLink;
-                    HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
-                    CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
+                    news.LatestLauncherVersion = data.latestLauncherSharpVersion;
+                    news.LauncherUpdateLink = data.launcherUpdateLink;
+                    news.HirezLoginServerHost = data.masterServers.hirezMasterServerHost;
+                    news.CommunityLoginServerHost = data.masterServers.unofficialMasterServerHost;
                 } catch (RuntimeBinderException ex)
                 {
                     throw new NewsParsingException("Missing expected fields in update news data", ex);
                 }
             }
+
+            return news;
         }
     }
 }

@@ -383,7 +383,7 @@ namespace TribesLauncherSharp
             // Download news
             try
             {
-                TAModsNews.DownloadNews($"{config.UpdateUrl}/news.json");
+                TAModsNews = News.DownloadNews($"{config.UpdateUrl}/news.json");
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to download server information: " + ex.Message, "News Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
