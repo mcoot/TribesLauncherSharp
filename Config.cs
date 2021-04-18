@@ -213,7 +213,15 @@ namespace TribesLauncherSharp
                 get { return Mode == InjectMode.Automatic; }
             }
         }
-        
+
+        public static readonly List<String> DefaultGamePaths = new List<string>
+        {
+            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe",
+            "D:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe",
+            "E:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe",
+            "C:\\Program Files (x86)\\HiRezGames\\Tribes\\Binaries\\Win32\\TribesAscend.exe",
+        };
+
         private string gamePath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Tribes\\Binaries\\Win32\\TribesAscend.exe";
         public string GamePath
         {
