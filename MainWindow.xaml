@@ -108,7 +108,7 @@
                         </ListView.View>
                     </ListView>
                     <Label x:Name="PackageStatusLabel" Content="Additional Packages" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
-                    <Button x:Name="PackageInstallButton" Content="Install" Margin="0,0,10.8,10.8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,0.5" Height="27" HorizontalAlignment="Right" Width="120" Click="PackageInstallButton_Click">
+                    <Button x:Name="PackageInstallButton" Content="Install" Margin="0,0,10.8,10.8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,0.5" Height="27" HorizontalAlignment="Right" Width="120" Click="PackageInstallButton_Click" IsEnabled="False">
                     </Button>
                     <TextBox x:Name="PackageDescriptionTextBox" Margin="0,26,9.8,42.8" TextWrapping="Wrap" Text="{Binding SelectedPackage.Remote.Description}" IsReadOnly="True" HorizontalAlignment="Right" Width="121" />
                 </Grid>

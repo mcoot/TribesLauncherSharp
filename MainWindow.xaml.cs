@@ -770,6 +770,7 @@ namespace TribesLauncherSharp
         private void PackageListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             DataModel.SelectedPackage = PackageListView.SelectedItem as LocalPackage;
+            PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled();
         }
 
         private void PackageInstallButton_Click(object sender, RoutedEventArgs e)
