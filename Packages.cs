@@ -128,7 +128,7 @@ namespace TribesLauncherSharp
 
         // Requires update if it's a required package or the package is installed and outdated
         public bool RequiresUpdate() => 
-            AvailableRemotely() && (Remote.Required || (IsInstalled() && Local.Version < Remote.Version));
+            AvailableRemotely() && ((!IsInstalled() && Remote.Required) || (IsInstalled() && Local.Version < Remote.Version));
     }
 
     class InstalledPackageState
