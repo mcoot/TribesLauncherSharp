@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows.Media;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -122,13 +123,34 @@ namespace TribesLauncherSharp
             Local = local;
         }
 
-        public bool AvailableRemotely() => Remote != null;
+        public bool AvailableRemotely => Remote != null;
 
-        public bool IsInstalled() => Local != null;
+        public bool IsInstalled => Local != null;
 
         // Requires update if it's a required package or the package is installed and outdated
-        public bool RequiresUpdate() => 
-            AvailableRemotely() && ((!IsInstalled() && Remote.Required) || (IsInstalled() && Local.Version < Remote.Version));
+        public bool RequiresUpdate =>
+            AvailableRemotely && ((!IsInstalled && Remote.Required) || (IsInstalled && Local.Version < Remote.Version));
+
+        static SolidColorBrush NeedsUpdateBrush = new SolidColorBrush(Colors.Red);
+        static SolidColorBrush InstalledBrush = new SolidColorBrush(Colors.Green);
+        static SolidColorBrush AvailableBrush = new SolidColorBrush(Colors.Black);
+
+        public SolidColorBrush DisplayColor
+        {
+            get
+            {
+                if (RequiresUpdate)
+                {
+                    return NeedsUpdateBrush;
+                } else if (IsInstalled)
+                {
+                    return InstalledBrush;
+                } else
+                {
+                    return AvailableBrush;
+                }
+            }
+        }
     }
 
     class InstalledPackageState
@@ -214,7 +236,7 @@ namespace TribesLauncherSharp
         public List<LocalPackage> LocalPackages { get; private set; } = new List<LocalPackage>();
 
         public List<LocalPackage> PackagesRequiringUpdate() =>
-            LocalPackages.Where((p) => p.RequiresUpdate()).ToList();
+            LocalPackages.Where((p) => p.RequiresUpdate).ToList();
 
         public bool UpdateRequired() => PackagesRequiringUpdate().Count > 0;
 

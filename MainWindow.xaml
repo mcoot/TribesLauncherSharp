@@ -102,8 +102,20 @@
                     <ListView x:Name="PackageListView" Height="217" Margin="10,26,135.8,0" VerticalAlignment="Top" ItemsSource="{Binding PackageState.LocalPackages}" SelectionChanged="PackageListView_SelectionChanged" SelectionMode="Single">
                         <ListView.View>
                             <GridView AllowsColumnReorder="False">
-                                <GridViewColumn Header="Package" Width="227" DisplayMemberBinding="{Binding Remote.DisplayName}"/>
-                                <GridViewColumn Header="Version" Width="75" DisplayMemberBinding="{Binding Remote.Version}" />
+                                <GridViewColumn Header="Package" Width="210">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Remote.DisplayName}" Foreground="{Binding DisplayColor}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Version" Width="75"  >
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Remote.Version}" Foreground="{Binding DisplayColor}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>

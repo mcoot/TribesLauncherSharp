@@ -770,7 +770,7 @@ namespace TribesLauncherSharp
         private void PackageListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             DataModel.SelectedPackage = PackageListView.SelectedItem as LocalPackage;
-            PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled();
+            PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled;
         }
 
         private void PackageInstallButton_Click(object sender, RoutedEventArgs e)
@@ -787,7 +787,7 @@ namespace TribesLauncherSharp
                 return;
             }
             
-            if (DataModel.SelectedPackage == null || !DataModel.SelectedPackage.AvailableRemotely())
+            if (DataModel.SelectedPackage == null || !DataModel.SelectedPackage.AvailableRemotely)
             {
                 MessageBox.Show("Selected package could not be located remotely", "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
