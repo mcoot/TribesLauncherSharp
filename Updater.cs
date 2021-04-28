@@ -87,16 +87,16 @@ namespace TribesLauncherSharp
             return result;
         }
 
-        private void UpdateInstalledPackageState(List<Package> justInstalled)
+        private void UpdateInstalledPackageState(List<RemotePackage> justInstalled)
         {
             var state = InstalledPackageState.Load();
-            foreach (Package installed in justInstalled) {
+            foreach (RemotePackage installed in justInstalled) {
                 state.MarkInstalled(installed.ToInstalledPackage());
             }
             state.Save();
         }
 
-        private async Task InstallPackages(List<Package> toInstall, string tribesExePath)
+        private async Task InstallPackages(List<RemotePackage> toInstall, string tribesExePath)
         {
             if (!tribesExePath.ToLower().EndsWith("tribesascend.exe"))
             {
@@ -154,13 +154,13 @@ namespace TribesLauncherSharp
             OnUpdateComplete?.Invoke(this, new EventArgs());
         }
 
-        private string generatePackageDownloadLocation(string localPath, Package package)
+        private string generatePackageDownloadLocation(string localPath, RemotePackage package)
         {
             string packageFileName = package.ObjectKey.Substring("package/".Length);
             return $"{localPath}/tmp/{packageFileName}";
         }
 
-        private async Task<List<String>> DownloadPackages(List<Package> packages, string localPath, Action<int, int> onPackageDownloadComplete)
+        private async Task<List<String>> DownloadPackages(List<RemotePackage> packages, string localPath, Action<int, int> onPackageDownloadComplete)
         {
             // Download in parallel if we're downloading a lot of packages, at most 10 packages at a time
             var batchSize = packages.Count > 10 ? 10 : 1;
@@ -253,7 +253,7 @@ namespace TribesLauncherSharp
 
             try
             {
-                List<Package> packages =
+                List<RemotePackage> packages =
                 packageState.PackagesRequiringUpdate().Select((p) => p.Remote).ToList();
 
                 await InstallPackages(packages, tribesExePath);
@@ -264,7 +264,7 @@ namespace TribesLauncherSharp
             }
         }
 
-        public async Task InstallNewPackage(Package package, string tribesExePath)
+        public async Task InstallNewPackage(PackageState packageState, LocalPackage package, string tribesExePath)
         {
             // Only one update or install may occur at once, if a second is attempted it will do nothing
             bool acquiredLock = await updateSemaphore.WaitAsync(0);
@@ -272,8 +272,10 @@ namespace TribesLauncherSharp
 
             try
             {
-                List<Package> packages = new List<Package>();
-                packages.Add(package);
+                List<RemotePackage> packages = new List<RemotePackage>();
+                packages.Add(package.Remote);
+                // Ensure dependencies are also installed
+                packages.AddRange(packageState.GetPackageDependenciesForInstall(package).Select((p) => p.Remote));
                 await InstallPackages(packages, tribesExePath);
             }
             finally

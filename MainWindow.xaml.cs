@@ -770,7 +770,13 @@ namespace TribesLauncherSharp
         private void PackageListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             DataModel.SelectedPackage = PackageListView.SelectedItem as LocalPackage;
-            PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled;
+            if (DataModel.SelectedPackage == null)
+            {
+                PackageInstallButton.IsEnabled = false;
+            } else
+            {
+                PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled;
+            }
         }
 
         private void PackageInstallButton_Click(object sender, RoutedEventArgs e)
@@ -802,7 +808,7 @@ namespace TribesLauncherSharp
                 return;
             }
 
-            TAModsUpdater.InstallNewPackage(DataModel.SelectedPackage.Remote, gamePath).FireAndForget((ex) =>
+            TAModsUpdater.InstallNewPackage(DataModel.PackageState, DataModel.SelectedPackage, gamePath).FireAndForget((ex) =>
             {
                 MessageBox.Show("Failed to complete package installation: " + ex.Message, "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
             });

@@ -42,7 +42,7 @@ namespace TribesLauncherSharp
         }
     }
 
-    class Package
+    class RemotePackage
     {
         // Unique identifier for the package
         public string Id { get; set; }
@@ -56,6 +56,8 @@ namespace TribesLauncherSharp
         public string ObjectKey { get; set; }
         // Whether the package is mandatory for TAMods
         public bool Required { get; set; }
+        // A list of dependency packages which must be installed alongside this package
+        public List<string> Dependencies { get; set; } = new List<string>();
 
         public InstalledPackage ToInstalledPackage()
         {
@@ -65,7 +67,7 @@ namespace TribesLauncherSharp
 
     class RemotePackageConfig
     {
-        public List<Package> Packages { get; private set; }
+        public List<RemotePackage> Packages { get; private set; }
 
         private static IDeserializer deserializer = new DeserializerBuilder()
             .WithNamingConvention(new CamelCaseNamingConvention())
@@ -114,10 +116,10 @@ namespace TribesLauncherSharp
 
     class LocalPackage
     {
-        public Package Remote { get; private set; }
+        public RemotePackage Remote { get; private set; }
         public InstalledPackage Local { get; private set; }
 
-        public LocalPackage(Package remote, InstalledPackage local)
+        public LocalPackage(RemotePackage remote, InstalledPackage local)
         {
             Remote = remote;
             Local = local;
@@ -235,8 +237,28 @@ namespace TribesLauncherSharp
     {
         public List<LocalPackage> LocalPackages { get; private set; } = new List<LocalPackage>();
 
-        public List<LocalPackage> PackagesRequiringUpdate() =>
-            LocalPackages.Where((p) => p.RequiresUpdate).ToList();
+        private LocalPackage GetById(string packageId) => 
+            LocalPackages.Where((p) => p.Remote.Id == packageId).FirstOrDefault();
+
+        // Common logic for determining deps by id which need update/install
+        private IEnumerable<LocalPackage> GetPackagesByIdRelevantForInstallOrUpdate(IEnumerable<string> ids) => 
+            ids.Select((id) => GetById(id)).Where((p) => p != null && (!p.IsInstalled || p.RequiresUpdate));
+
+        public List<LocalPackage> GetPackageDependenciesForInstall(LocalPackage package) =>
+            GetPackagesByIdRelevantForInstallOrUpdate(package.Remote.Dependencies).ToList();
+
+        public List<LocalPackage> PackagesRequiringUpdate()
+        {
+            // Direct packages needing update...
+            List<LocalPackage> toUpdate = LocalPackages.Where((p) => p.RequiresUpdate).ToList();
+
+            // We must also update any packages we don't currently have installed, that are dependencies of packages we are updating
+            // (e.g. on update, a new dep has been added to an existing package)
+            HashSet<string> dedupedDepIdsToUpdate = new HashSet<string>(toUpdate.SelectMany((p) => p.Remote.Dependencies));
+            toUpdate.AddRange(GetPackagesByIdRelevantForInstallOrUpdate(dedupedDepIdsToUpdate));
+
+            return toUpdate;
+        }
 
         public bool UpdateRequired() => PackagesRequiringUpdate().Count > 0;
 
