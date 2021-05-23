@@ -145,6 +145,7 @@
         </TabControl>
         <Button x:Name="LauncherButton" Content="Launch" Margin="346,0,10.4,9.6" Click="LauncherButton_Click" Height="27" VerticalAlignment="Bottom"/>
         <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Margin="10,0,0,9.6" Width="331" Height="27" VerticalAlignment="Bottom"/>
+        <Label x:Name="UpdatePhaseLabel" Content="" HorizontalAlignment="Left" Margin="10,284,0,0" VerticalAlignment="Top" Height="34"/>
 
     </Grid>
 </Window>

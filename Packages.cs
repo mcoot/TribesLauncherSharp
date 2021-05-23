@@ -80,7 +80,7 @@ namespace TribesLauncherSharp
             string rawData;
             try
             {
-                rawData = RemoteObjectManager.DownloadObjectAsString("packageconfig.yaml");
+                rawData = RemoteObjectManager.Instance.DownloadObjectAsString("packageconfig.yaml");
             }
             catch (Exception ex)
             {

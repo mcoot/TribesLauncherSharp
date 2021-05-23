@@ -130,6 +130,7 @@ namespace TribesLauncherSharp
             // Add event handlers
             TAModsUpdater.OnUpdateComplete += OnUpdateFinished;
             TAModsUpdater.OnProgressTick += OnUpdateProgressTick;
+            TAModsUpdater.OnUpdatePhaseChange += OnUpdatePhaseChange;
 
             TALauncher = new InjectorLauncher();
             TALauncher.OnTargetProcessLaunched += OnProcessLaunched;
@@ -243,6 +244,7 @@ namespace TribesLauncherSharp
             TAModsUpdater.PerformUpdate(DataModel.PackageState, gamePath).FireAndForget((ex) =>
             {
                 MessageBox.Show("Failed to complete update: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                SetStatus(LauncherStatus.UPDATE_REQUIRED);
             });
 
             SetStatus(LauncherStatus.UPDATE_IN_PROGRESS);
@@ -394,9 +396,34 @@ namespace TribesLauncherSharp
 
         private void OnUpdateProgressTick(object sender, Updater.OnProgressTickEventArgs e)
         {
-            if (Math.Abs(UpdateProgressBar.Value - 100 * e.Proportion) > 5)
+            if (Math.Abs(UpdateProgressBar.Value - 100 * e.Proportion) > 1)
             {
                 UpdateProgressBar.Value = 100 * e.Proportion;
+            }
+        }
+
+        private void OnUpdatePhaseChange(object sender, Updater.OnUpdatePhaseChangeEventArgs e)
+        {
+            switch (e.Phase)
+            {
+                case Updater.UpdatePhase.NotUpdating:
+                    UpdatePhaseLabel.Content = "";
+                    break;
+                case Updater.UpdatePhase.Preparing:
+                    UpdatePhaseLabel.Content = "Preparing...";
+                    break;
+                case Updater.UpdatePhase.Downloading:
+                    UpdatePhaseLabel.Content = "Downloading...";
+                    break;
+                case Updater.UpdatePhase.Extracting:
+                    UpdatePhaseLabel.Content = "Extracting...";
+                    break;
+                case Updater.UpdatePhase.Copying:
+                    UpdatePhaseLabel.Content = "Copying...";
+                    break;
+                case Updater.UpdatePhase.Finalising:
+                    UpdatePhaseLabel.Content = "Finalising...";
+                    break;
             }
         }
 
@@ -770,7 +797,7 @@ namespace TribesLauncherSharp
         private void PackageListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             DataModel.SelectedPackage = PackageListView.SelectedItem as LocalPackage;
-            if (DataModel.SelectedPackage == null)
+            if (DataModel.SelectedPackage == null || Status != LauncherStatus.READY_TO_LAUNCH)
             {
                 PackageInstallButton.IsEnabled = false;
             } else
@@ -811,9 +838,12 @@ namespace TribesLauncherSharp
             TAModsUpdater.InstallNewPackage(DataModel.PackageState, DataModel.SelectedPackage, gamePath).FireAndForget((ex) =>
             {
                 MessageBox.Show("Failed to complete package installation: " + ex.Message, "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // This leaves the launcher in a broken update-in-progress state; however we'd have to track the prior state to know what to set it back to
+                // Fixable by restarting the installer, leaving for now
             });
 
             SetStatus(LauncherStatus.UPDATE_IN_PROGRESS);
+            PackageInstallButton.IsEnabled = false;
         }
     }
     #endregion

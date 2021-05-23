@@ -14,26 +14,41 @@ namespace TribesLauncherSharp
 {
     sealed class RemoteObjectManager
     {
+        private static RemoteObjectManager _instance;
+        public static RemoteObjectManager Instance { get
+            {
+                if (_instance is null)
+                {
+                    _instance = new RemoteObjectManager();
+                }
+                return _instance;
+            } 
+        }
+
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+
         private static readonly string baseUrl = "https://tamods-update.s3-ap-southeast-2.amazonaws.com";
 
-        private static readonly HttpClient httpClient = new HttpClient();
-        private static readonly WebClient webClient = new WebClient();
+        private readonly WebClient webClient = new WebClient();
 
-        public static string DownloadObjectAsString(string key)
+        public RemoteObjectManager()
+        {
+            webClient.DownloadProgressChanged += WebClient_DownloadProgressChanged;
+        }
+
+        public string DownloadObjectAsString(string key)
         {
             return webClient.DownloadString($"{baseUrl}/{key}");
         }
 
-        public static async Task DownloadObjectToFile(string key, string filePath)
+        public async Task DownloadObjectToFile(string key, string filePath)
         {
-            var response = await httpClient.GetAsync(new Uri($"{baseUrl}/{key}"));
-            using (Stream memStream = await response.Content.ReadAsStreamAsync())
-            {
-                using (Stream fileStream = File.Create(filePath))
-                {
-                    await memStream.CopyToAsync(fileStream);
-                }
-            }
+            await webClient.DownloadFileTaskAsync($"{baseUrl}/{key}", filePath);
+        }
+
+        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            DownloadProgressChanged?.Invoke(sender, e);
         }
     }
     
@@ -62,6 +77,27 @@ namespace TribesLauncherSharp
             }
         }
         public event EventHandler<OnProgressTickEventArgs> OnProgressTick;
+
+
+        public enum UpdatePhase
+        {
+            NotUpdating,
+            Preparing,
+            Downloading,
+            Extracting,
+            Copying,
+            Finalising
+        }
+        public class OnUpdatePhaseChangeEventArgs : EventArgs
+        {
+            public UpdatePhase Phase { get; set; }
+
+            public OnUpdatePhaseChangeEventArgs(UpdatePhase phase)
+            {
+                Phase = phase;
+            }
+        }
+        public event EventHandler<OnUpdatePhaseChangeEventArgs> OnUpdatePhaseChange;
 
         public static bool IsUriAccessible(Uri uri)
         {
@@ -98,60 +134,74 @@ namespace TribesLauncherSharp
 
         private async Task InstallPackages(List<RemotePackage> toInstall, string tribesExePath)
         {
-            if (!tribesExePath.ToLower().EndsWith("tribesascend.exe"))
+            try
             {
-                throw new Exception($"Invalid tribes path {tribesExePath}");
-            }
+                BroadcastUpdatePhase(UpdatePhase.Preparing);
+                if (!tribesExePath.ToLower().EndsWith("tribesascend.exe"))
+                {
+                    throw new Exception($"Invalid tribes path {tribesExePath}");
+                }
 
-            // Exe is <basepath>/Binaries/Win32/TribesAscend.exe
-            // So the directory two levels up is the base path of the install
-            string tribesBasePath = Path.Combine(Path.GetDirectoryName(tribesExePath), "..", "..");
+                // Exe is <basepath>/Binaries/Win32/TribesAscend.exe
+                // So the directory two levels up is the base path of the install
+                string tribesBasePath = Path.Combine(Path.GetDirectoryName(tribesExePath), "..", "..");
 
-            // Clear temp directory if it exists
-            if (Directory.Exists("./tmp"))
-            {
+                // Clear temp directory if it exists
+                if (Directory.Exists("./tmp"))
+                {
+                    Directory.Delete($"./tmp", true);
+                }
+                Directory.CreateDirectory("./tmp");
+
+                double progressBarValue = 0;
+
+                BroadcastUpdatePhase(UpdatePhase.Downloading);
+                // Download compressed packages to temp folder
+                List<string> archives = await DownloadPackages(toInstall, ".", (percentage) =>
+                {
+                    // Half the progress bar for download, then half for extract / copy
+                    double pct = progressBarValue + 0.5 * percentage;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+
+                progressBarValue = 0.5;
+
+                BroadcastUpdatePhase(UpdatePhase.Extracting);
+                // Extract packages and delete the zips
+                ExtractArchives(archives, (idx, totalZips) =>
+                {
+                    // 25% of progress bar for extracts
+                    double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalZips;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+
+                progressBarValue = 0.75;
+
+                BroadcastUpdatePhase(UpdatePhase.Copying);
+                // For each package we downloaded, copy its files into the local dir / config dir / Tribes dir
+                CopyDownloadedPackages("./tmp", ".", tribesBasePath, (idx, totalPackages) =>
+                {
+                    // 25% of progress bar for package copy
+                    double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalPackages;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+                BroadcastUpdatePhase(UpdatePhase.Finalising);
+
+                // Save the new installed package manifest
+                UpdateInstalledPackageState(toInstall);
+
+                // Delete temp directory
                 Directory.Delete($"./tmp", true);
+
+                BroadcastUpdatePhase(UpdatePhase.NotUpdating);
+                // Raise finished event
+                OnUpdateComplete?.Invoke(this, new EventArgs());
+            } catch (Exception e)
+            {
+                // Reset update phase
+                BroadcastUpdatePhase(UpdatePhase.NotUpdating);
+                throw e;
             }
-            Directory.CreateDirectory("./tmp");
-
-            double progressBarValue = 0;
-
-            // Download compressed packages to temp folder
-            List<string> archives = await DownloadPackages(toInstall, ".", (batchIdx, totalBatches) =>
-            {
-                // Half the progress bar for download, then half for extract / copy
-                double pct = progressBarValue + 0.5 * ((double)batchIdx + 1) / totalBatches;
-                OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
-            });
-
-            progressBarValue = 0.5;
-
-            // Extract packages and delete the zips
-            ExtractArchives(archives, (idx, totalZips) =>
-            {
-                // 25% of progress bar for extracts
-                double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalZips;
-                OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
-            });
-
-            progressBarValue = 0.75;
-
-            // For each package we downloaded, copy its files into the local dir / config dir / Tribes dir
-            CopyDownloadedPackages("./tmp", ".", tribesBasePath, (idx, totalPackages) =>
-            {
-                // 25% of progress bar for package copy
-                double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalPackages;
-                OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
-            });
-
-            // Save the new installed package manifest
-            UpdateInstalledPackageState(toInstall);
-
-            // Delete temp directory
-            Directory.Delete($"./tmp", true);
-
-            // Raise finished event
-            OnUpdateComplete?.Invoke(this, new EventArgs());
         }
 
         private string generatePackageDownloadLocation(string localPath, RemotePackage package)
@@ -160,33 +210,38 @@ namespace TribesLauncherSharp
             return $"{localPath}/tmp/{packageFileName}";
         }
 
-        private async Task<List<String>> DownloadPackages(List<RemotePackage> packages, string localPath, Action<int, int> onPackageDownloadComplete)
+        private async Task<List<string>> DownloadPackages(List<RemotePackage> packages, string localPath, Action<double> packageDownloadProgressHandler)
         {
-            // Download in parallel if we're downloading a lot of packages, at most 10 packages at a time
-            var batchSize = packages.Count > 10 ? 10 : 1;
-            var packageBatches = packages
+            var packageDownloadDetails = packages
                 .Select((p, i) =>
                 {
                     // Object keys are under package/
                     return new { Idx = i, ObjectKey = p.ObjectKey, DownloadLocation = generatePackageDownloadLocation(localPath, p) };
-                })
-                .Batch(batchSize)
-                .Select((b, i) => new { Idx = i, Batch = b });
+                });
 
-            var downloadedArchives = new List<String>();
-            foreach (var batch in packageBatches)
+            var downloadedArchives = new List<string>();
+            int completedPackages = 0;
+            // Event handler for download progress including progress of each package
+            EventHandler<DownloadProgressChangedEventArgs> downloadHandler = (object sender, DownloadProgressChangedEventArgs e) =>
             {
-                var batchDownloads = await Task.WhenAll(batch.Batch.Select(async (p) =>
-                {
-                    await RemoteObjectManager.DownloadObjectToFile(p.ObjectKey, p.DownloadLocation);
-                    onPackageDownloadComplete(batch.Idx, packageBatches.Count());
-                    return p.DownloadLocation;
-                }));
-                foreach (var dl in batchDownloads)
-                {
-                    downloadedArchives.Add(dl);
-                }
+                double baseCompletion = ((double)completedPackages) / packageDownloadDetails.Count();
+                double nextBaseCompletion = ((double)completedPackages + 1) / packageDownloadDetails.Count();
+
+                double completion = baseCompletion + (((double)e.ProgressPercentage) / 100) * (nextBaseCompletion - baseCompletion);
+                packageDownloadProgressHandler?.Invoke(completion);
+            };
+
+            RemoteObjectManager.Instance.DownloadProgressChanged += downloadHandler;
+
+            foreach (var p in packageDownloadDetails)
+            {
+                await RemoteObjectManager.Instance.DownloadObjectToFile(p.ObjectKey, p.DownloadLocation);
+                downloadedArchives.Add(p.DownloadLocation);
+                completedPackages++;
             }
+
+            RemoteObjectManager.Instance.DownloadProgressChanged -= downloadHandler;
+
             return downloadedArchives;
         }
 
@@ -240,6 +295,11 @@ namespace TribesLauncherSharp
                 }
                 onPackageComplete(p.Idx, packageDirs.Count());
             }
+        }
+
+        private void BroadcastUpdatePhase(UpdatePhase phase)
+        {
+            OnUpdatePhaseChange?.Invoke(this, new OnUpdatePhaseChangeEventArgs(phase));
         }
 
         public async Task PerformUpdate(PackageState packageState, string tribesExePath)

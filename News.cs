@@ -36,7 +36,7 @@ namespace TribesLauncherSharp
             string rawData;
             try
             {
-                rawData = RemoteObjectManager.DownloadObjectAsString("news.yaml");
+                rawData = RemoteObjectManager.Instance.DownloadObjectAsString("news.yaml");
             }
                 catch (Exception ex)
             {
