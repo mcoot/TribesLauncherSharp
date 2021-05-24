@@ -125,7 +125,7 @@ namespace TribesLauncherSharp
             AutoInjectTimer.Elapsed += OnAutoInjectTimerElapsed;
 
             string configPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/My Games/Tribes Ascend/TribesGame/config/";
-            TAModsUpdater = new Updater(LauncherConfig.UpdateUrl, configPath);
+            TAModsUpdater = new Updater(LauncherConfig.UpdateUrl, configPath, LauncherConfig.Debug);
 
             // Add event handlers
             TAModsUpdater.OnUpdateComplete += OnUpdateFinished;
@@ -509,6 +509,7 @@ namespace TribesLauncherSharp
                 }
             }
             Config config = LauncherConfig;
+            TAModsUpdater.Debug = config.Debug;
 
             if (config.Injection.Mode == InjectMode.Automatic)
             {

@@ -69,6 +69,36 @@ namespace TribesLauncherSharp
             public ConfigSaveException(string message, Exception inner) : base(message, inner) { }
         }
 
+        public class DebugConfig : INotifyPropertyChanged
+        {
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+            protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+            {
+                if (Equals(storage, value)) return false;
+
+                storage = value;
+                this.OnPropertyChanged(propertyName);
+                return true;
+            }
+
+            private bool disableCopyOnUpdate = false;
+            public bool DisableCopyOnUpdate
+            {
+                get { return disableCopyOnUpdate; }
+                set
+                {
+                    if (SetProperty(ref disableCopyOnUpdate, value))
+                    {
+                        this.OnPropertyChanged("DisableCopyOnUpdate");
+                    }
+                }
+            }
+        }
+
         public class LoginServerConfig : INotifyPropertyChanged
         {
             public event PropertyChangedEventHandler PropertyChanged;
@@ -234,7 +264,9 @@ namespace TribesLauncherSharp
             get { return customArguments; }
             set { SetProperty(ref customArguments, value); }
         }
-        
+
+        public DebugConfig Debug { get; set; } = new DebugConfig();
+
         public DLLConfig DLL { get; set; } = new DLLConfig();
         public InjectConfig Injection { get; set; } = new InjectConfig();
         public LoginServerConfig LoginServer { get; set; } = new LoginServerConfig();

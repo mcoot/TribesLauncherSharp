@@ -56,13 +56,16 @@ namespace TribesLauncherSharp
     {
         private SemaphoreSlim updateSemaphore;
 
+        public Config.DebugConfig Debug;
+
         public string ConfigBasePath { get; set; }
 
 
-        public Updater(string remoteBaseUrl, string configBasePath)
+        public Updater(string remoteBaseUrl, string configBasePath, Config.DebugConfig debugConfig)
         {
             ConfigBasePath = configBasePath;
             updateSemaphore = new SemaphoreSlim(1, 1);
+            Debug = debugConfig;
         }
 
         public event EventHandler OnUpdateComplete;
@@ -257,28 +260,34 @@ namespace TribesLauncherSharp
             }
         }
 
-        private void CopyFile(string relativeFilename, string tempRoot, string localRoot, string gameBasePath)
+        private void CopyFile(string relativeFilename, string packageRoot, string localRoot, string gameBasePath)
         {
+            string normalisedRelativeFilename = relativeFilename.Replace("/", "\\");
+
             string copyLocation;
-            if (relativeFilename.StartsWith("!CONFIG/"))
+            if (normalisedRelativeFilename.StartsWith("!CONFIG\\"))
             {
-                copyLocation = $"{ConfigBasePath}/{relativeFilename.Replace("!CONFIG/", "")}";
-            } else if (relativeFilename.StartsWith("!TRIBESDIR/"))
+                copyLocation = $"{ConfigBasePath}\\{normalisedRelativeFilename.Replace("!CONFIG\\", "")}";
+            } else if (normalisedRelativeFilename.StartsWith("!TRIBESDIR\\"))
             {
-                copyLocation = $"{gameBasePath}/{relativeFilename.Replace("!TRIBESDIR/", "")}";
+                copyLocation = $"{gameBasePath}\\{normalisedRelativeFilename.Replace("!TRIBESDIR\\", "")}";
             } else
             {
-                copyLocation = $"{localRoot}/{relativeFilename}";
+                copyLocation = $"{localRoot}\\{normalisedRelativeFilename}";
             }
 
-            Console.WriteLine($"SAVING FILE TO {copyLocation}");
+            if (Debug.DisableCopyOnUpdate)
+            {
+                Console.WriteLine($"Copy disabled; would write file {normalisedRelativeFilename} to {copyLocation}");
+            } else
+            {
+                // Create directory if required
+                string dir = new FileInfo(copyLocation).Directory.FullName;
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-            //// Create directory if required
-            //string dir = new FileInfo(copyLocation).Directory.FullName;
-            //if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
-            //// Copy the file
-            //File.Copy($"{tempRoot}/{relativeFilename}", copyLocation, true);
+                // Copy the file
+                File.Copy($"{packageRoot}\\{normalisedRelativeFilename}", copyLocation, true);
+            }
         }
 
         private void CopyDownloadedPackages(string tempRoot, string localRoot, string gameBasePath, Action<int, int> onPackageComplete)
@@ -291,7 +300,7 @@ namespace TribesLauncherSharp
                 // Recursively get every file in the current package
                 foreach (var file in Directory.EnumerateFiles(p.Directory, "*", SearchOption.AllDirectories))
                 {
-                    CopyFile(Path.GetFullPath(file).Remove(0, packageRoot.Length), tempRoot, localRoot, gameBasePath);
+                    CopyFile(Path.GetFullPath(file).Remove(0, packageRoot.Length + 1), packageRoot, localRoot, gameBasePath);
                 }
                 onPackageComplete(p.Idx, packageDirs.Count());
             }
