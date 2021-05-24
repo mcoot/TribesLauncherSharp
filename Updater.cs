@@ -171,7 +171,7 @@ namespace TribesLauncherSharp
 
                 BroadcastUpdatePhase(UpdatePhase.Extracting);
                 // Extract packages and delete the zips
-                ExtractArchives(archives, (idx, totalZips) =>
+                await ExtractArchives(archives, (idx, totalZips) =>
                 {
                     // 25% of progress bar for extracts
                     double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalZips;
@@ -182,7 +182,7 @@ namespace TribesLauncherSharp
 
                 BroadcastUpdatePhase(UpdatePhase.Copying);
                 // For each package we downloaded, copy its files into the local dir / config dir / Tribes dir
-                CopyDownloadedPackages("./tmp", ".", tribesBasePath, (idx, totalPackages) =>
+                await CopyDownloadedPackages("./tmp", ".", tribesBasePath, (idx, totalPackages) =>
                 {
                     // 25% of progress bar for package copy
                     double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalPackages;
@@ -248,14 +248,17 @@ namespace TribesLauncherSharp
             return downloadedArchives;
         }
 
-        private void ExtractArchives(List<string> toExtract, Action<int, int> onExtractComplete)
+        private async Task ExtractArchives(List<string> toExtract, Action<int, int> onExtractComplete)
         {
             foreach (var a in toExtract.Select((a, i) => new { Idx = i, Archive = a }))
             {
-                var dest = $"{Path.GetDirectoryName(a.Archive)}/{Path.GetFileNameWithoutExtension(a.Archive)}";
-                Directory.CreateDirectory(dest);
-                ZipFile.ExtractToDirectory(a.Archive, dest);
-                File.Delete(a.Archive);
+                await Task.Run(() =>
+                {
+                    var dest = $"{Path.GetDirectoryName(a.Archive)}/{Path.GetFileNameWithoutExtension(a.Archive)}";
+                    Directory.CreateDirectory(dest);
+                    ZipFile.ExtractToDirectory(a.Archive, dest);
+                    File.Delete(a.Archive);
+                });
                 onExtractComplete(a.Idx, toExtract.Count);
             }
         }
@@ -290,7 +293,7 @@ namespace TribesLauncherSharp
             }
         }
 
-        private void CopyDownloadedPackages(string tempRoot, string localRoot, string gameBasePath, Action<int, int> onPackageComplete)
+        private async Task CopyDownloadedPackages(string tempRoot, string localRoot, string gameBasePath, Action<int, int> onPackageComplete)
         {
             var packageDirs = Directory.GetDirectories(tempRoot);
 
@@ -300,7 +303,10 @@ namespace TribesLauncherSharp
                 // Recursively get every file in the current package
                 foreach (var file in Directory.EnumerateFiles(p.Directory, "*", SearchOption.AllDirectories))
                 {
-                    CopyFile(Path.GetFullPath(file).Remove(0, packageRoot.Length + 1), packageRoot, localRoot, gameBasePath);
+                    await Task.Run(() =>
+                    {
+                        CopyFile(Path.GetFullPath(file).Remove(0, packageRoot.Length + 1), packageRoot, localRoot, gameBasePath);
+                    });
                 }
                 onPackageComplete(p.Idx, packageDirs.Count());
             }
