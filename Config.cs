@@ -97,6 +97,19 @@ namespace TribesLauncherSharp
                     }
                 }
             }
+
+            private string alternatePackageConfigFile = null;
+            public string AlternatePackageConfigFile
+            {
+                get { return alternatePackageConfigFile; }
+                set
+                {
+                    if (SetProperty(ref alternatePackageConfigFile, value))
+                    {
+                        this.OnPropertyChanged("AlternatePackageConfigFile");
+                    }
+                }
+            }
         }
 
         public class LoginServerConfig : INotifyPropertyChanged

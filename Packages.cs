@@ -75,12 +75,13 @@ namespace TribesLauncherSharp
             .IgnoreUnmatchedProperties()
             .Build();
 
-        public static RemotePackageConfig DownloadPackageConfig()
+        public static RemotePackageConfig DownloadPackageConfig(Config config)
         {
+            string packageConfigName = config.Debug.AlternatePackageConfigFile ?? "packageconfig.yaml";
             string rawData;
             try
             {
-                rawData = RemoteObjectManager.Instance.DownloadObjectAsString("packageconfig.yaml");
+                rawData = RemoteObjectManager.Instance.DownloadObjectAsString(packageConfigName);
             }
             catch (Exception ex)
             {
@@ -264,9 +265,9 @@ namespace TribesLauncherSharp
 
         public bool UpdateRequired() => PackagesRequiringUpdate().Count > 0;
 
-        public static PackageState Load()
+        public static PackageState Load(Config config)
         {
-            RemotePackageConfig remote = RemotePackageConfig.DownloadPackageConfig();
+            RemotePackageConfig remote = RemotePackageConfig.DownloadPackageConfig(config);
             InstalledPackageState local = InstalledPackageState.Load();
 
             // Match local packages to remote ones

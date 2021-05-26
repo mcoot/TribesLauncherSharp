@@ -381,7 +381,7 @@ namespace TribesLauncherSharp
                     MessageBox.Show("Failed to restore Ubermenu config: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
-                DataModel.PackageState = PackageState.Load();
+                DataModel.PackageState = PackageState.Load(LauncherConfig);
 
                 // Check for update again...
                 if (DataModel.PackageState.UpdateRequired())
@@ -544,7 +544,7 @@ namespace TribesLauncherSharp
             }
             try
             {
-                DataModel.PackageState = PackageState.Load();
+                DataModel.PackageState = PackageState.Load(LauncherConfig);
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to download server package information: " + ex.Message, "Package Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -667,7 +667,7 @@ namespace TribesLauncherSharp
                 case MessageBoxResult.Yes:
                     // Delete the installed package state
                     InstalledPackageState.Clear();
-                    DataModel.PackageState = PackageState.Load();
+                    DataModel.PackageState = PackageState.Load(LauncherConfig);
                     SetStatus(LauncherStatus.UPDATE_REQUIRED);
                     break;
                 default:
