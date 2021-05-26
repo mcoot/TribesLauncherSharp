@@ -250,14 +250,16 @@ namespace TribesLauncherSharp
         public List<LocalPackage> PackagesRequiringUpdate()
         {
             // Direct packages needing update...
-            List<LocalPackage> toUpdate = LocalPackages.Where((p) => p.RequiresUpdate).ToList();
+            List<LocalPackage> directPackages = LocalPackages.Where((p) => p.RequiresUpdate).ToList();
 
             // We must also update any packages we don't currently have installed, that are dependencies of packages we are updating
             // (e.g. on update, a new dep has been added to an existing package)
-            HashSet<string> dedupedDepIdsToUpdate = new HashSet<string>(toUpdate.SelectMany((p) => p.Remote.Dependencies));
-            toUpdate.AddRange(GetPackagesByIdRelevantForInstallOrUpdate(dedupedDepIdsToUpdate));
+            // Need to dedupe dependencies both for common deps
+            // and also in case we happen to be updating the same package as both a dep and directly
+            HashSet<string> dedupedIdsToUpdate = new HashSet<string>(directPackages.SelectMany((p) => p.Remote.Dependencies));
+            dedupedIdsToUpdate.UnionWith(directPackages.Select((p) => p.Remote.Id));
 
-            return toUpdate;
+            return GetPackagesByIdRelevantForInstallOrUpdate(dedupedIdsToUpdate).ToList();
         }
 
         public bool UpdateRequired() => PackagesRequiringUpdate().Count > 0;
