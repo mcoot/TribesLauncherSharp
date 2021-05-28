@@ -140,7 +140,7 @@ namespace TribesLauncherSharp
             try
             {
                 BroadcastUpdatePhase(UpdatePhase.Preparing);
-                if (!tribesExePath.ToLower().EndsWith("tribesascend.exe"))
+                if (!tribesExePath.ToLower().EndsWith(".exe"))
                 {
                     throw new Exception($"Invalid tribes path {tribesExePath}");
                 }
