@@ -45,14 +45,14 @@
                             </StackPanel>
                             <StackPanel Width="86" Margin="0,0,0,-0.4"/>
                             <StackPanel Width="208" Margin="0,0,0,-0.4">
-                                <ComboBox x:Name="LoginServerModeDropdown" Margin="0,5" VerticalAlignment="Top" ItemsSource="{Binding Source={StaticResource enumLoginServerMode}}" SelectedItem="{Binding LoginServer.LoginServer, Mode=TwoWay}" Height="23" SelectionChanged="LoginServerModeDropdown_SelectionChanged" />
-                                <TextBox x:Name="CustomLoginServerTextBox" Height="23" TextWrapping="Wrap" Text="{Binding LoginServer.CustomLoginServerHost, Mode=TwoWay}" VerticalAlignment="Top" IsEnabled="{Binding LoginServer.IsCustom, Mode=OneWay}"/>
+                                <ComboBox x:Name="LoginServerModeDropdown" Margin="0,5" VerticalAlignment="Top" ItemsSource="{Binding Source={StaticResource enumLoginServerMode}}" SelectedItem="{Binding LauncherConfig.LoginServer.LoginServer, Mode=TwoWay}" Height="23" SelectionChanged="LoginServerModeDropdown_SelectionChanged" />
+                                <TextBox x:Name="CustomLoginServerTextBox" Height="23" TextWrapping="Wrap" Text="{Binding LauncherConfig.LoginServer.CustomLoginServerHost, Mode=TwoWay}" VerticalAlignment="Top" IsEnabled="{Binding LauncherConfig.LoginServer.IsCustom, Mode=OneWay}"/>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Header="Game Path" Height="58" Margin="10,10,10,0" VerticalAlignment="Top" RenderTransformOrigin="0.494,0.765">
                         <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="GamePathTextBox" Width="346" Margin="0,3,5,5.4" Height="22" Text="{Binding GamePath, Mode=TwoWay}" MaxLines="1"/>
+                            <TextBox x:Name="GamePathTextBox" Width="346" Margin="0,3,5,5.4" Height="22" Text="{Binding LauncherConfig.GamePath, Mode=TwoWay}" MaxLines="1"/>
                             <Button x:Name="GamePathChooseButton" Content="Choose" Width="55" Margin="0,5,0,7.2" RenderTransformOrigin="1.333,0.582" Height="22.4" Click="GamePathChooseButton_Click"/>
                         </StackPanel>
                     </GroupBox>
@@ -61,8 +61,8 @@
                             <RadioButton x:Name="InjectionModeManualRadio" Content="Manual" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0" GroupName="InjectionModeRadio" Checked="InjectionModeManualRadio_Checked" />
                             <StackPanel Height="41" Margin="0,0,0.4,0" Orientation="Horizontal">
                                 <RadioButton x:Name="InjectionModeAutoRadio" Content="Automatic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5,0,0" GroupName="InjectionModeRadio" Checked="InjectionModeAutoRadio_Checked" />
-                                <Slider x:Name="InjectionModeAutoSlider" HorizontalAlignment="Left" Height="34" Margin="5,5,0,0" VerticalAlignment="Top" Width="90" TickPlacement="BottomRight" Minimum="5" Maximum="45" TickFrequency="5" Value="{Binding Injection.AutoInjectTimer, Mode=TwoWay}" IsEnabled="{Binding Injection.IsAutomatic, Mode=OneWay}" />
-                                <Label x:Name="InjectionModeAutoLabel" Content="{Binding Injection.AutoInjectTimer}" IsEnabled="{Binding Injection.IsAutomatic, Mode=OneWay}" />
+                                <Slider x:Name="InjectionModeAutoSlider" HorizontalAlignment="Left" Height="34" Margin="5,5,0,0" VerticalAlignment="Top" Width="90" TickPlacement="BottomRight" Minimum="5" Maximum="45" TickFrequency="5" Value="{Binding LauncherConfig.Injection.AutoInjectTimer, Mode=TwoWay}" IsEnabled="{Binding LauncherConfig.Injection.IsAutomatic, Mode=OneWay}" />
+                                <Label x:Name="InjectionModeAutoLabel" Content="{Binding LauncherConfig.Injection.AutoInjectTimer}" IsEnabled="{Binding LauncherConfig.Injection.IsAutomatic, Mode=OneWay}" />
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
@@ -74,11 +74,11 @@
                         <StackPanel>
                             <StackPanel Height="30" Orientation="Horizontal" Margin="0,0,-0.2,0">
                                 <Label Content="Release Channel:" Margin="0,0,0,0.4"/>
-                                <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5.4" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding DLL.Channel, Mode=TwoWay}" />
+                                <ComboBox x:Name="DLLModeDropdown" Margin="5,3,5,5.4" SelectedIndex="0" ItemsSource="{Binding Source={StaticResource enumDLLMode}}" SelectedItem="{Binding LauncherConfig.DLL.Channel, Mode=TwoWay}" />
                             </StackPanel>
                             <StackPanel Height="52" Orientation="Horizontal" Margin="0,0,-0.2,0">
-                                <TextBox x:Name="CustomDLLPathTextBox" Width="346" Margin="0,0,5,30" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding DLL.CustomDLLPath, Mode=TwoWay}" />
-                                <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="55" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
+                                <TextBox x:Name="CustomDLLPathTextBox" Width="346" Margin="0,0,5,30" IsEnabled="{Binding LauncherConfig.DLL.IsCustom, Mode=OneWay}" MaxLines="1" Text="{Binding LauncherConfig.DLL.CustomDLLPath, Mode=TwoWay}" />
+                                <Button x:Name="CustomDLLPathChooseButton" Content="Choose" Width="55" Margin="0,0,0,30" RenderTransformOrigin="1.333,0.582" IsEnabled="{Binding LauncherConfig.DLL.IsCustom, Mode=OneWay}" Click="CustomDLLPathChooseButton_Click" />
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
@@ -93,13 +93,45 @@
                         </StackPanel>
                     </GroupBox>
                     <GroupBox Header="Extra Command Line Arguments" Height="57" Margin="10,185,10,0" VerticalAlignment="Top">
-                        <TextBox HorizontalAlignment="Left" Margin="0,7,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="408" MaxLines="1" Text="{Binding CustomArguments, Mode=TwoWay}" Height="22.4"/>
+                        <TextBox HorizontalAlignment="Left" Margin="0,7,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="408" MaxLines="1" Text="{Binding LauncherConfig.CustomArguments, Mode=TwoWay}" Height="22.4"/>
                     </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="PackagesTab" Header="Packages">
+                <Grid >
+                    <ListView x:Name="PackageListView" Height="217" Margin="10,26,135.8,0" VerticalAlignment="Top" ItemsSource="{Binding PackageState.LocalPackages}" SelectionChanged="PackageListView_SelectionChanged" SelectionMode="Single">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="Package" Width="210">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Remote.DisplayName}" Foreground="{Binding DisplayColor}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Version" Width="75"  >
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Remote.Version}" Foreground="{Binding DisplayColor}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <Label x:Name="PackageStatusLabel" Content="Additional Packages" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top"/>
+                    <Button x:Name="PackageInstallButton" Content="Install" Margin="0,0,10.8,10.8" VerticalAlignment="Bottom" RenderTransformOrigin="0.5,0.5" Height="27" HorizontalAlignment="Right" Width="120" Click="PackageInstallButton_Click" IsEnabled="False">
+                    </Button>
+                    <TextBox x:Name="PackageDescriptionTextBox" Margin="0,26,9.8,42.8" TextWrapping="Wrap" Text="{Binding SelectedPackage.Remote.Description}" IsReadOnly="True" HorizontalAlignment="Right" Width="121" />
                 </Grid>
             </TabItem>
             <TabItem x:Name="InfoTab" Header="Info">
                 <Grid Margin="0">
-                    <RichTextBox x:Name="InfoRichTextBox" Margin="0" IsReadOnly="True" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46*"/>
+                        <ColumnDefinition Width="105*"/>
+                    </Grid.ColumnDefinitions>
+                    <RichTextBox x:Name="InfoRichTextBox" Margin="0,0,-0.2,-0.2" IsReadOnly="True" Grid.ColumnSpan="2" >
                         <RichTextBox.Resources>
                             <Style TargetType="Hyperlink">
                                 <Setter Property="Cursor" Value="Hand" />
@@ -113,6 +145,7 @@
         </TabControl>
         <Button x:Name="LauncherButton" Content="Launch" Margin="346,0,10.4,9.6" Click="LauncherButton_Click" Height="27" VerticalAlignment="Bottom"/>
         <ProgressBar x:Name="UpdateProgressBar" HorizontalAlignment="Left" Margin="10,0,0,9.6" Width="331" Height="27" VerticalAlignment="Bottom"/>
+        <Label x:Name="UpdatePhaseLabel" Content="" HorizontalAlignment="Left" Margin="10,284,0,0" VerticalAlignment="Top" Height="34"/>
 
     </Grid>
 </Window>

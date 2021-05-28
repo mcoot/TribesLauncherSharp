@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -11,20 +12,60 @@ using System.Xml.Linq;
 
 namespace TribesLauncherSharp
 {
+    sealed class RemoteObjectManager
+    {
+        private static RemoteObjectManager _instance;
+        public static RemoteObjectManager Instance { get
+            {
+                if (_instance is null)
+                {
+                    _instance = new RemoteObjectManager();
+                }
+                return _instance;
+            } 
+        }
+
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+
+        private static readonly string baseUrl = "https://tamods-update.s3-ap-southeast-2.amazonaws.com";
+
+        private readonly WebClient webClient = new WebClient();
+
+        public RemoteObjectManager()
+        {
+            webClient.DownloadProgressChanged += WebClient_DownloadProgressChanged;
+        }
+
+        public string DownloadObjectAsString(string key)
+        {
+            return webClient.DownloadString($"{baseUrl}/{key}");
+        }
+
+        public async Task DownloadObjectToFile(string key, string filePath)
+        {
+            await webClient.DownloadFileTaskAsync($"{baseUrl}/{key}", filePath);
+        }
+
+        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            DownloadProgressChanged?.Invoke(sender, e);
+        }
+    }
+    
     class Updater
     {
         private SemaphoreSlim updateSemaphore;
 
-        public string RemoteBaseUrl { get; set; }
-        public string LocalBasePath { get; set; }
+        public Config.DebugConfig Debug;
+
         public string ConfigBasePath { get; set; }
 
-        public Updater(string remoteBaseUrl, string localBasePath, string configBasePath)
+
+        public Updater(string remoteBaseUrl, string configBasePath, Config.DebugConfig debugConfig)
         {
-            RemoteBaseUrl = remoteBaseUrl;
-            LocalBasePath = localBasePath;
             ConfigBasePath = configBasePath;
             updateSemaphore = new SemaphoreSlim(1, 1);
+            Debug = debugConfig;
         }
 
         public event EventHandler OnUpdateComplete;
@@ -39,6 +80,27 @@ namespace TribesLauncherSharp
             }
         }
         public event EventHandler<OnProgressTickEventArgs> OnProgressTick;
+
+
+        public enum UpdatePhase
+        {
+            NotUpdating,
+            Preparing,
+            Downloading,
+            Extracting,
+            Copying,
+            Finalising
+        }
+        public class OnUpdatePhaseChangeEventArgs : EventArgs
+        {
+            public UpdatePhase Phase { get; set; }
+
+            public OnUpdatePhaseChangeEventArgs(UpdatePhase phase)
+            {
+                Phase = phase;
+            }
+        }
+        public event EventHandler<OnUpdatePhaseChangeEventArgs> OnUpdatePhaseChange;
 
         public static bool IsUriAccessible(Uri uri)
         {
@@ -64,120 +126,212 @@ namespace TribesLauncherSharp
             return result;
         }
 
-        private static Dictionary<string, double> ReadManifest(XElement manifestDoc) 
-            => manifestDoc
-            .Descendants("files")
-            .Where((e) => (string) e.Attribute("channel") == "stable")
-            .Descendants("file")
-            .ToDictionary(e => e.Value, e => (double)e.Attribute("version"));
-
-        private static Dictionary<string, double> DiffManifests(Dictionary<string, double> oldManifest, Dictionary<string, double> newManifest)
-            => newManifest
-            .Where(f => !oldManifest.ContainsKey(f.Key) || oldManifest[f.Key] < f.Value)
-            .ToDictionary(f => f.Key, f => f.Value);
-        
-        private Dictionary<string, double> GetFilesNeedingUpdate()
+        private void UpdateInstalledPackageState(List<RemotePackage> justInstalled)
         {
-            // Read remote/local manifests to find diff
-            var localManifest = new Dictionary<string, double>();
-            if (File.Exists($"{LocalBasePath}/version.xml"))
-            {
-                localManifest = ReadManifest(XElement.Load($"{LocalBasePath}/version.xml"));
+            var state = InstalledPackageState.Load();
+            foreach (RemotePackage installed in justInstalled) {
+                state.MarkInstalled(installed.ToInstalledPackage());
             }
-
-            var remoteManifest = ReadManifest(XElement.Load($"{RemoteBaseUrl}/version.xml"));
-
-            return DiffManifests(localManifest, remoteManifest);
+            state.Save();
         }
 
-        private async Task PerformUpdateInternal()
+        private async Task InstallPackages(List<RemotePackage> toInstall, string tribesExePath)
         {
-            Dictionary<string, double> filesToDownload = GetFilesNeedingUpdate();
-
-            // Download to temp folder
-            using (var httpClient = new HttpClient())
+            try
             {
-                // Download files in batches of 10, if there are at least 10 to download
-                var batchSize = filesToDownload.Count > 10 ? 10 : 1;
-                var fileBatches = filesToDownload.Keys
-                    .Select((f, i) =>
-                    {
-                        int dirSplitPos = Math.Max(0, Math.Max(f.LastIndexOf('/'), f.LastIndexOf('\\')));
-                        string relativeDir = f.Substring(0, dirSplitPos);
-                        string dir = $"{LocalBasePath}/tmp/{relativeDir}";
-                        return new { Idx = i, Filename = f, Directory = dir };
-                    })
-                    .Batch(batchSize)
-                    .Select((b, i) => new { Idx = i, Batch = b});
-                var numBatches = fileBatches.Count();
-                foreach (var batch in fileBatches)
+                BroadcastUpdatePhase(UpdatePhase.Preparing);
+                if (!tribesExePath.ToLower().EndsWith(".exe"))
                 {
-                    // Create directories for this batch if required
-                    foreach (var file in batch.Batch)
-                    {
-                        if (!Directory.Exists(file.Directory)) Directory.CreateDirectory(file.Directory);
-                    }
-
-                    var tasks = batch.Batch.Select(async (file) =>
-                    {
-                        var response = await httpClient.GetAsync(new Uri($"{RemoteBaseUrl}/{file.Filename}"));
-                        using (var memStream = response.Content.ReadAsStreamAsync().Result)
-                        {
-                            using (var fileStream = File.Create($"{LocalBasePath}/tmp/{file.Filename}"))
-                            {
-                                memStream.CopyTo(fileStream);
-                            }
-                        }
-                    });
-                    await Task.WhenAll(tasks);
-
-                    double pct = ((double)batch.Idx + 1) / numBatches;
-                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                    throw new Exception($"Invalid tribes path {tribesExePath}");
                 }
+
+                // Exe is <basepath>/Binaries/Win32/TribesAscend.exe
+                // So the directory two levels up is the base path of the install
+                string tribesBasePath = Path.Combine(Path.GetDirectoryName(tribesExePath), "..", "..");
+
+                // Clear temp directory if it exists
+                if (Directory.Exists("./tmp"))
+                {
+                    Directory.Delete($"./tmp", true);
+                }
+                Directory.CreateDirectory("./tmp");
+
+                double progressBarValue = 0;
+
+                BroadcastUpdatePhase(UpdatePhase.Downloading);
+                // Download compressed packages to temp folder
+                List<string> archives = await DownloadPackages(toInstall, ".", (percentage) =>
+                {
+                    // Half the progress bar for download, then half for extract / copy
+                    double pct = progressBarValue + 0.5 * percentage;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+
+                progressBarValue = 0.5;
+
+                BroadcastUpdatePhase(UpdatePhase.Extracting);
+                // Extract packages and delete the zips
+                await ExtractArchives(archives, (idx, totalZips) =>
+                {
+                    // 25% of progress bar for extracts
+                    double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalZips;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+
+                progressBarValue = 0.75;
+
+                BroadcastUpdatePhase(UpdatePhase.Copying);
+                // For each package we downloaded, copy its files into the local dir / config dir / Tribes dir
+                await CopyDownloadedPackages("./tmp", ".", tribesBasePath, (idx, totalPackages) =>
+                {
+                    // 25% of progress bar for package copy
+                    double pct = progressBarValue + 0.25 * ((double)idx + 1) / totalPackages;
+                    OnProgressTick?.Invoke(this, new OnProgressTickEventArgs(pct));
+                });
+                BroadcastUpdatePhase(UpdatePhase.Finalising);
+
+                // Save the new installed package manifest
+                UpdateInstalledPackageState(toInstall);
+
+                // Delete temp directory
+                Directory.Delete($"./tmp", true);
+
+                BroadcastUpdatePhase(UpdatePhase.NotUpdating);
+                // Raise finished event
+                OnUpdateComplete?.Invoke(this, new EventArgs());
+            } catch (Exception e)
+            {
+                // Reset update phase
+                BroadcastUpdatePhase(UpdatePhase.NotUpdating);
+                throw e;
+            }
+        }
+
+        private string generatePackageDownloadLocation(string localPath, RemotePackage package)
+        {
+            string packageFileName = package.ObjectKey.Substring("package/".Length);
+            return $"{localPath}/tmp/{packageFileName}";
+        }
+
+        private async Task<List<string>> DownloadPackages(List<RemotePackage> packages, string localPath, Action<double> packageDownloadProgressHandler)
+        {
+            var packageDownloadDetails = packages
+                .Select((p, i) =>
+                {
+                    // Object keys are under package/
+                    return new { Idx = i, ObjectKey = p.ObjectKey, DownloadLocation = generatePackageDownloadLocation(localPath, p) };
+                });
+
+            var downloadedArchives = new List<string>();
+            int completedPackages = 0;
+            // Event handler for download progress including progress of each package
+            EventHandler<DownloadProgressChangedEventArgs> downloadHandler = (object sender, DownloadProgressChangedEventArgs e) =>
+            {
+                double baseCompletion = ((double)completedPackages) / packageDownloadDetails.Count();
+                double nextBaseCompletion = ((double)completedPackages + 1) / packageDownloadDetails.Count();
+
+                double completion = baseCompletion + (((double)e.ProgressPercentage) / 100) * (nextBaseCompletion - baseCompletion);
+                packageDownloadProgressHandler?.Invoke(completion);
+            };
+
+            RemoteObjectManager.Instance.DownloadProgressChanged += downloadHandler;
+
+            foreach (var p in packageDownloadDetails)
+            {
+                await RemoteObjectManager.Instance.DownloadObjectToFile(p.ObjectKey, p.DownloadLocation);
+                downloadedArchives.Add(p.DownloadLocation);
+                completedPackages++;
             }
 
-            // Copy files out
-            foreach (string filename in filesToDownload.Keys)
-            {
-                string copyLocation;
-                if (filename.StartsWith("!CONFIG/"))
-                {
-                    copyLocation = $"{ConfigBasePath}/{filename.Replace("!CONFIG/", "")}";
-                }
-                else
-                {
-                    copyLocation = $"{LocalBasePath}/{filename}";
-                }
+            RemoteObjectManager.Instance.DownloadProgressChanged -= downloadHandler;
 
+            return downloadedArchives;
+        }
+
+        private async Task ExtractArchives(List<string> toExtract, Action<int, int> onExtractComplete)
+        {
+            foreach (var a in toExtract.Select((a, i) => new { Idx = i, Archive = a }))
+            {
+                await Task.Run(() =>
+                {
+                    var dest = $"{Path.GetDirectoryName(a.Archive)}/{Path.GetFileNameWithoutExtension(a.Archive)}";
+                    Directory.CreateDirectory(dest);
+                    ZipFile.ExtractToDirectory(a.Archive, dest);
+                    File.Delete(a.Archive);
+                });
+                onExtractComplete(a.Idx, toExtract.Count);
+            }
+        }
+
+        private void CopyFile(string relativeFilename, string packageRoot, string localRoot, string gameBasePath)
+        {
+            string normalisedRelativeFilename = relativeFilename.Replace("/", "\\");
+
+            string copyLocation;
+            if (normalisedRelativeFilename.StartsWith("!CONFIG\\"))
+            {
+                copyLocation = $"{ConfigBasePath}\\{normalisedRelativeFilename.Replace("!CONFIG\\", "")}";
+            } else if (normalisedRelativeFilename.StartsWith("!TRIBESDIR\\"))
+            {
+                copyLocation = $"{gameBasePath}\\{normalisedRelativeFilename.Replace("!TRIBESDIR\\", "")}";
+            } else
+            {
+                copyLocation = $"{localRoot}\\{normalisedRelativeFilename}";
+            }
+
+            if (Debug.DisableCopyOnUpdate)
+            {
+                Console.WriteLine($"Copy disabled; would write file {normalisedRelativeFilename} to {copyLocation}");
+            } else
+            {
                 // Create directory if required
                 string dir = new FileInfo(copyLocation).Directory.FullName;
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
                 // Copy the file
-                File.Copy($"{LocalBasePath}/tmp/{filename}", copyLocation, true);
+                File.Copy($"{packageRoot}\\{normalisedRelativeFilename}", copyLocation, true);
             }
-
-            // Delete temp directory
-            Directory.Delete($"{LocalBasePath}/tmp", true);
-
-            // Download the current version manifest
-            // TODO: THIS
-            var newLocalManifest = XElement.Load($"{RemoteBaseUrl}/version.xml");
-            newLocalManifest.Save($"{LocalBasePath}/version.xml");
-
-            // Raise finished event
-            OnUpdateComplete?.Invoke(this, new EventArgs());
         }
 
-        public async Task PerformUpdate()
+        private async Task CopyDownloadedPackages(string tempRoot, string localRoot, string gameBasePath, Action<int, int> onPackageComplete)
         {
-            // Only one update may occur at once, if a second is attempted it will do nothing
+            var packageDirs = Directory.GetDirectories(tempRoot);
+
+            foreach (var p in packageDirs.Select((d, i) => new { Idx = i, Directory = d }))
+            {
+                var packageRoot = Path.GetFullPath(p.Directory);
+                // Recursively get every file in the current package
+                foreach (var file in Directory.EnumerateFiles(p.Directory, "*", SearchOption.AllDirectories))
+                {
+                    await Task.Run(() =>
+                    {
+                        CopyFile(Path.GetFullPath(file).Remove(0, packageRoot.Length + 1), packageRoot, localRoot, gameBasePath);
+                    });
+                }
+                onPackageComplete(p.Idx, packageDirs.Count());
+            }
+        }
+
+        private void BroadcastUpdatePhase(UpdatePhase phase)
+        {
+            OnUpdatePhaseChange?.Invoke(this, new OnUpdatePhaseChangeEventArgs(phase));
+        }
+
+        public async Task PerformUpdate(PackageState packageState, string tribesExePath)
+        {
+            // TribesExePath definitely shouldn't be passed in from the UI layer as a param like this
+            // but I'm retrofitting it and can't be fucked
+
+            // Only one update or install may occur at once, if a second is attempted it will do nothing
             bool acquiredLock = await updateSemaphore.WaitAsync(0);
             if (!acquiredLock) return;
 
             try
             {
-                await PerformUpdateInternal();
+                List<RemotePackage> packages =
+                packageState.PackagesRequiringUpdate().Select((p) => p.Remote).ToList();
+
+                await InstallPackages(packages, tribesExePath);
             }
             finally
             {
@@ -185,17 +339,27 @@ namespace TribesLauncherSharp
             }
         }
 
-        public bool IsUpdateRequired() => GetFilesNeedingUpdate().Count > 0;
-
-        public bool IsUpdateInProgress() => updateSemaphore.CurrentCount == 0;
-
-        public void DeleteVersionManifest()
+        public async Task InstallNewPackage(PackageState packageState, LocalPackage package, string tribesExePath)
         {
-            if (File.Exists($"{LocalBasePath}/version.xml"))
+            // Only one update or install may occur at once, if a second is attempted it will do nothing
+            bool acquiredLock = await updateSemaphore.WaitAsync(0);
+            if (!acquiredLock) return;
+
+            try
             {
-                File.Delete($"{LocalBasePath}/version.xml");
+                List<RemotePackage> packages = new List<RemotePackage>();
+                packages.Add(package.Remote);
+                // Ensure dependencies are also installed
+                packages.AddRange(packageState.GetPackageDependenciesForInstall(package).Select((p) => p.Remote));
+                await InstallPackages(packages, tribesExePath);
+            }
+            finally
+            {
+                updateSemaphore.Release();
             }
         }
+
+        public bool IsUpdateInProgress() => updateSemaphore.CurrentCount == 0;
 
         #region Ubermenu Specific Handling
         public bool ConfigUsesUbermenu()

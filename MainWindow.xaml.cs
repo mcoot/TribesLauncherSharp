@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using NuGet.Versioning;
+using System;
+using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace TribesLauncherSharp
 {
@@ -32,6 +27,68 @@ namespace TribesLauncherSharp
     /// </summary>
     public partial class MainWindow : Window
     {
+        class MainWindowDataModel : INotifyPropertyChanged
+        {
+            public event PropertyChangedEventHandler PropertyChanged;
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+            protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+            {
+                if (Equals(storage, value)) return false;
+
+                storage = value;
+                this.OnPropertyChanged(propertyName);
+                return true;
+            }
+
+            private Config launcherConfig;
+            public Config LauncherConfig
+            {
+                get { return launcherConfig; }
+                set
+                {
+                    if (SetProperty(ref launcherConfig, value))
+                    {
+                        this.OnPropertyChanged("LauncherConfig");
+                    }
+                }
+            }
+
+            private PackageState packageState;
+            public PackageState PackageState
+            {
+                get { return packageState; }
+                set
+                {
+                    if (SetProperty(ref packageState, value))
+                    {
+                        this.OnPropertyChanged("PackageState");
+                    }
+                }
+            }
+
+            private LocalPackage selectedPackage;
+            public LocalPackage SelectedPackage
+            {
+                get { return selectedPackage; }
+                set
+                {
+                    if (SetProperty(ref selectedPackage, value))
+                    {
+                        this.OnPropertyChanged("SelectedPackage");
+                    }
+                }
+            }
+        }
+
+        private MainWindowDataModel DataModel;
+
+        private Config LauncherConfig { get => DataModel.LauncherConfig; }
+
+        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.0.0");
+
         System.Timers.Timer AutoInjectTimer { get; set; }
 
         private Updater TAModsUpdater { get; set; }
@@ -46,9 +103,19 @@ namespace TribesLauncherSharp
         private int lastLaunchedProcessId { get; set; } = 0;
 
         public MainWindow() {
+            // Allow TLS 1.2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+
             Status = LauncherStatus.READY_TO_LAUNCH;
 
-            DataContext = new Config();
+            DataModel = new MainWindowDataModel
+            {
+                LauncherConfig = new Config(),
+                PackageState = new PackageState(),
+            };
+            DataContext = DataModel;
+
             InitializeComponent();
             TAModsNews = new News();
             ServerStatus = new LoginServerStatus();
@@ -58,16 +125,19 @@ namespace TribesLauncherSharp
             AutoInjectTimer.Elapsed += OnAutoInjectTimerElapsed;
 
             string configPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/My Games/Tribes Ascend/TribesGame/config/";
-            TAModsUpdater = new Updater(((Config)DataContext).UpdateUrl, ".", configPath);
+            TAModsUpdater = new Updater(LauncherConfig.UpdateUrl, configPath, LauncherConfig.Debug);
 
             // Add event handlers
             TAModsUpdater.OnUpdateComplete += OnUpdateFinished;
             TAModsUpdater.OnProgressTick += OnUpdateProgressTick;
+            TAModsUpdater.OnUpdatePhaseChange += OnUpdatePhaseChange;
 
             TALauncher = new InjectorLauncher();
             TALauncher.OnTargetProcessLaunched += OnProcessLaunched;
             TALauncher.OnTargetProcessEnded += OnProcessEnded;
             TALauncher.OnTargetPollingException += OnProcessPollingException;
+
+            
         }
 
         #region Helper Functions
@@ -103,6 +173,45 @@ namespace TribesLauncherSharp
             }
         }
 
+        private string GetGamePathIfValid()
+        {
+            string gamePath = LauncherConfig.GamePath;
+
+            if (!File.Exists(gamePath))
+            {
+                return null;
+            }
+
+            return gamePath;
+        }
+
+        private string AttemptToDefaultGamePath()
+        {
+            string gamePath = LauncherConfig.GamePath;
+            if (File.Exists(gamePath))
+            {
+                return gamePath;
+            }
+
+            // Don't try to overwrite a custom user thing, only the default
+            if (!Config.DefaultGamePaths.Contains(gamePath))
+            {
+                return gamePath;
+            }
+
+            foreach (var defaultPath in Config.DefaultGamePaths)
+            {
+                // If another default exists, default to that
+                if (File.Exists(defaultPath))
+                {
+                    return defaultPath;
+                }
+            }
+
+            // Failed to default, just return current value
+            return gamePath;
+        }
+
         private void BeginUpdate()
         {
             if (Status == LauncherStatus.UPDATE_IN_PROGRESS) return;
@@ -121,10 +230,21 @@ namespace TribesLauncherSharp
                 return;
             }
 
+            // Check that the user has their Tribes path set and is valid
+            string gamePath = GetGamePathIfValid();
+            if (gamePath == null)
+            {
+                MessageBox.Show(
+                     $"Cannot update as the specified game path \"{LauncherConfig.GamePath}\" does not exist. Please locate TribesAscend.exe and set the game path to it.",
+                     "Update Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             // Run the update asynchronously
-            TAModsUpdater.PerformUpdate().FireAndForget((ex) =>
+            TAModsUpdater.PerformUpdate(DataModel.PackageState, gamePath).FireAndForget((ex) =>
             {
                 MessageBox.Show("Failed to complete update: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                SetStatus(LauncherStatus.UPDATE_REQUIRED);
             });
 
             SetStatus(LauncherStatus.UPDATE_IN_PROGRESS);
@@ -132,16 +252,16 @@ namespace TribesLauncherSharp
 
         private void LaunchGame()
         {
-            Config config = (Config)DataContext;
+            Config config = LauncherConfig;
 
             string loginServerHost = config.LoginServer.CustomLoginServerHost;
             if (config.LoginServer.LoginServer == LoginServerMode.HiRez)
             {
-                loginServerHost = TAModsNews.HirezLoginServerHost;
+                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "HiRez").Address;
             }
             else if (config.LoginServer.LoginServer == LoginServerMode.Community)
             {
-                loginServerHost = TAModsNews.CommunityLoginServerHost;
+                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "Community").Address;
             }
 
             try
@@ -164,7 +284,7 @@ namespace TribesLauncherSharp
         {
             if (Status != LauncherStatus.READY_TO_INJECT && Status != LauncherStatus.WAITING_TO_INJECT) return;
 
-            var config = (Config)DataContext;
+            var config = LauncherConfig;
 
             string dllPath;
             switch (config.DLL.Channel)
@@ -204,7 +324,7 @@ namespace TribesLauncherSharp
         {
             Dispatcher.Invoke(new ThreadStart(() =>
             {
-                Config config = DataContext as Config;
+                Config config = LauncherConfig;
                 // If the config is set to only consider injection by process ID, only change state if we launched it
                 if (config.Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId && e.ProcessId != lastLaunchedProcessId) return;
 
@@ -224,7 +344,7 @@ namespace TribesLauncherSharp
         {
             Dispatcher.Invoke(new ThreadStart(() =>
             {
-                if (((Config)DataContext).Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId)
+                if (LauncherConfig.Injection.ProcessDetectionMode == ProcessDetectionMode.ProcessId)
                 {
                     // Stop polling for the dead process
                     TALauncher.UnsetTarget();
@@ -261,15 +381,49 @@ namespace TribesLauncherSharp
                     MessageBox.Show("Failed to restore Ubermenu config: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
-                SetStatus(LauncherStatus.READY_TO_LAUNCH);
+                DataModel.PackageState = PackageState.Load(LauncherConfig);
+
+                // Check for update again...
+                if (DataModel.PackageState.UpdateRequired())
+                {
+                    SetStatus(LauncherStatus.UPDATE_REQUIRED);
+                } else
+                {
+                    SetStatus(LauncherStatus.READY_TO_LAUNCH);
+                }
             }));
         }
 
         private void OnUpdateProgressTick(object sender, Updater.OnProgressTickEventArgs e)
         {
-            if (Math.Abs(UpdateProgressBar.Value - 100 * e.Proportion) > 5)
+            if (Math.Abs(UpdateProgressBar.Value - 100 * e.Proportion) > 1)
             {
                 UpdateProgressBar.Value = 100 * e.Proportion;
+            }
+        }
+
+        private void OnUpdatePhaseChange(object sender, Updater.OnUpdatePhaseChangeEventArgs e)
+        {
+            switch (e.Phase)
+            {
+                case Updater.UpdatePhase.NotUpdating:
+                    UpdatePhaseLabel.Content = "";
+                    break;
+                case Updater.UpdatePhase.Preparing:
+                    UpdatePhaseLabel.Content = "Preparing...";
+                    break;
+                case Updater.UpdatePhase.Downloading:
+                    UpdatePhaseLabel.Content = "Downloading...";
+                    break;
+                case Updater.UpdatePhase.Extracting:
+                    UpdatePhaseLabel.Content = "Extracting...";
+                    break;
+                case Updater.UpdatePhase.Copying:
+                    UpdatePhaseLabel.Content = "Copying...";
+                    break;
+                case Updater.UpdatePhase.Finalising:
+                    UpdatePhaseLabel.Content = "Finalising...";
+                    break;
             }
         }
 
@@ -348,14 +502,14 @@ namespace TribesLauncherSharp
             {
                 try
                 {
-                    DataContext = Config.Load("launcherconfig.yaml");
-                    TAModsUpdater.RemoteBaseUrl = ((Config)DataContext).UpdateUrl;
+                    DataModel.LauncherConfig = Config.Load("launcherconfig.yaml");
                 } catch (Exception ex)
                 {
                     MessageBox.Show("Failed to read launcher configuration: " + ex.Message, "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            Config config = (Config)DataContext;
+            Config config = LauncherConfig;
+            TAModsUpdater.Debug = config.Debug;
 
             if (config.Injection.Mode == InjectMode.Automatic)
             {
@@ -380,13 +534,20 @@ namespace TribesLauncherSharp
             // Setup the info text boxinfo box
             InitInfoRichTextBox();
 
-            // Download news
+            // Download news and package config
             try
             {
-                TAModsNews.DownloadNews($"{config.UpdateUrl}/news.json");
+                TAModsNews = News.DownloadNews();
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to download server information: " + ex.Message, "News Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            try
+            {
+                DataModel.PackageState = PackageState.Load(LauncherConfig);
+            } catch (Exception ex)
+            {
+                MessageBox.Show("Failed to download server package information: " + ex.Message, "Package Download Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             // Set up polling for game process if we're doing it by name
@@ -396,12 +557,10 @@ namespace TribesLauncherSharp
             }
 
             // Prompt to update if need be
-            var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var newsVersion = Version.Parse(TAModsNews.LatestLauncherVersion);
-            if (newsVersion > currentVersion)
+            if (TAModsNews.LatestLauncherVersion > LauncherVersion)
             {
                 var doGoToUpdate = MessageBox.Show(
-                    $"A launcher update is available. You have version {currentVersion.ToString()}, and version {newsVersion.ToString()} is available. Open update page?",
+                    $"A launcher update is available. You have version {LauncherVersion}, and version {TAModsNews.LatestLauncherVersion} is available. Open update page?",
                     "Launcher Update Available", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
                 switch (doGoToUpdate)
                 {
@@ -414,11 +573,20 @@ namespace TribesLauncherSharp
             }
 
             // Prompt if the game path doesn't exist
-            if (!File.Exists(((Config)DataContext).GamePath))
+            string gamePath = GetGamePathIfValid();
+            if (gamePath == null)
             {
-                MessageBox.Show(
-                    "The game path you have selected does not appear to exist. You will not be able to launch the game until this points to the location of TribesAscend.exe",
+                // Attempt to default the game path if we can
+                string defaultedGamePath = AttemptToDefaultGamePath();
+                if (defaultedGamePath != gamePath)
+                {
+                    LauncherConfig.GamePath = defaultedGamePath;
+                }  else
+                {
+                    MessageBox.Show(
+                    "The game path you have selected does not appear to exist. You will not be able to update or launch the game until this points to the location of TribesAscend.exe",
                     "Game Path Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
 
             // Prompt to set up Ubermenu if need be
@@ -445,7 +613,7 @@ namespace TribesLauncherSharp
             }
 
             // Check for an update
-            if (TAModsUpdater.IsUpdateRequired())
+            if (DataModel.PackageState.UpdateRequired())
             {
                 SetStatus(LauncherStatus.UPDATE_REQUIRED);
             }
@@ -455,7 +623,7 @@ namespace TribesLauncherSharp
         {
             try
             {
-                ((Config)DataContext).Save("launcherconfig.yaml");
+                LauncherConfig.Save("launcherconfig.yaml");
             } catch (Exception ex)
             {
                 MessageBox.Show("Failed to save launcher configuration: " + ex.Message, "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -464,27 +632,27 @@ namespace TribesLauncherSharp
 
         private void InjectionModeManualRadio_Checked(object sender, RoutedEventArgs e)
         {
-            ((Config)DataContext).Injection.Mode = InjectMode.Manual;
+            LauncherConfig.Injection.Mode = InjectMode.Manual;
         }
 
         private void InjectionModeAutoRadio_Checked(object sender, RoutedEventArgs e)
         {
-            ((Config)DataContext).Injection.Mode = InjectMode.Automatic;
+            LauncherConfig.Injection.Mode = InjectMode.Automatic;
         }
 
         private void ProcessDetectionModeProcessNameRadio_Checked(object sender, RoutedEventArgs e)
         {
-            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessName;
+            LauncherConfig.Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessName;
         }
 
         private void ProcessDetectionModeProcessIdRadio_Checked(object sender, RoutedEventArgs e)
         {
-            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessId;
+            LauncherConfig.Injection.ProcessDetectionMode = ProcessDetectionMode.ProcessId;
         }
 
         private void ProcessDetectionModeCommandLineRadio_Checked(object sender, RoutedEventArgs e)
         {
-            ((Config)DataContext).Injection.ProcessDetectionMode = ProcessDetectionMode.CommandLineString;
+            LauncherConfig.Injection.ProcessDetectionMode = ProcessDetectionMode.CommandLineString;
         }
 
 
@@ -497,8 +665,9 @@ namespace TribesLauncherSharp
             switch (doSetUp)
             {
                 case MessageBoxResult.Yes:
-                    // Delete the version XML
-                    TAModsUpdater.DeleteVersionManifest();
+                    // Delete the installed package state
+                    InstalledPackageState.Clear();
+                    DataModel.PackageState = PackageState.Load(LauncherConfig);
                     SetStatus(LauncherStatus.UPDATE_REQUIRED);
                     break;
                 default:
@@ -513,7 +682,7 @@ namespace TribesLauncherSharp
 
         private void OpenGameDirectoryButton_Click(object sender, RoutedEventArgs e)
         {
-            Config config = (Config)DataContext;
+            Config config = LauncherConfig;
 
             FileInfo fi = null;
             try
@@ -535,7 +704,7 @@ namespace TribesLauncherSharp
 
         private void GamePathChooseButton_Click(object sender, RoutedEventArgs e)
         {
-            Config config = (Config)DataContext;
+            Config config = LauncherConfig;
             Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
 
             FileInfo fi = null;
@@ -567,7 +736,7 @@ namespace TribesLauncherSharp
 
         private void CustomDLLPathChooseButton_Click(object sender, RoutedEventArgs e)
         {
-            Config config = (Config)DataContext;
+            Config config = LauncherConfig;
             Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
 
             FileInfo fi = null;
@@ -607,7 +776,7 @@ namespace TribesLauncherSharp
             // This needs to be reworked
             // Needs to be made asynchronous for a start, the delay is bad
 
-            //var config = (Config)DataContext;
+            //var config = LauncherConfig;
             //if (config == null || TAModsNews == null) return;
 
             //switch (config.LoginServer.LoginServer)
@@ -624,6 +793,58 @@ namespace TribesLauncherSharp
             //        PlayersOnlineLabel.Content = ServerStatus.PlayersOnline != null ? $"{ServerStatus.PlayersOnline}" : "?";
             //        break;
             //}
+        }
+
+        private void PackageListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DataModel.SelectedPackage = PackageListView.SelectedItem as LocalPackage;
+            if (DataModel.SelectedPackage == null || Status != LauncherStatus.READY_TO_LAUNCH)
+            {
+                PackageInstallButton.IsEnabled = false;
+            } else
+            {
+                PackageInstallButton.IsEnabled = !DataModel.SelectedPackage.IsInstalled;
+            }
+        }
+
+        private void PackageInstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Status != LauncherStatus.READY_TO_LAUNCH)
+            {
+                MessageBox.Show("Cannot install a new package right now. Ensure all existing packages are updated and the game is not running.", "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (TAModsUpdater.IsUpdateInProgress())
+            {
+                MessageBox.Show("Cannot install a new package while an update is in progress", "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (DataModel.SelectedPackage == null || !DataModel.SelectedPackage.AvailableRemotely)
+            {
+                MessageBox.Show("Selected package could not be located remotely", "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string gamePath = GetGamePathIfValid();
+            if (gamePath == null)
+            {
+                MessageBox.Show(
+                     $"Cannot install package as the specified game path \"{LauncherConfig.GamePath}\" does not exist. Please locate TribesAscend.exe and set the game path to it.",
+                     "Update Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            TAModsUpdater.InstallNewPackage(DataModel.PackageState, DataModel.SelectedPackage, gamePath).FireAndForget((ex) =>
+            {
+                MessageBox.Show("Failed to complete package installation: " + ex.Message, "Package Install Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // This leaves the launcher in a broken update-in-progress state; however we'd have to track the prior state to know what to set it back to
+                // Fixable by restarting the installer, leaving for now
+            });
+
+            SetStatus(LauncherStatus.UPDATE_IN_PROGRESS);
+            PackageInstallButton.IsEnabled = false;
         }
     }
     #endregion

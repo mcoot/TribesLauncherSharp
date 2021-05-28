@@ -12,6 +12,8 @@ namespace TribesLauncherSharp
 
         /// <summary>
         /// Run a task to 'fire and forget', but to run a delegate on exception
+        /// 
+        /// Because C# is a garbage language
         /// </summary>
         /// <param name="task">The Task to run</param>
         /// <param name="onError">Called if the task raises an exception</param>
