@@ -299,7 +299,6 @@ namespace TribesLauncherSharp
         }
 
         private static ISerializer serializer = new SerializerBuilder()
-            .EmitDefaults()
             .Build();
         private static IDeserializer deserializer = new DeserializerBuilder()
             .WithNamingConvention(new PascalCaseNamingConvention())
