@@ -459,7 +459,7 @@ namespace TribesLauncherSharp
 
             var devPara = new Paragraph(new Run("Launcher developed by mcoot"));
 
-            var reportPara = new Paragraph(new Run("Please report bugs via Discord (mcoot#7419) or Reddit (/u/avianistheterm)"));
+            var reportPara = new Paragraph(new Run("Please report bugs via Discord (mcoot#7419)/(Dodge#3156) or Reddit (/u/avianistheterm)"));
 
             var linksPara = new Paragraph(new Run("Information about TAMods and community servers can be found at:"));
 
@@ -469,25 +469,37 @@ namespace TribesLauncherSharp
             linkTamodsOrg.NavigateUri = new Uri("https://www.tamods.org");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkTamodsOrg)));
 
-            var linkTAServerGithub = new Hyperlink(new Run("TAServer on GitHub"));
-            linkTAServerGithub.NavigateUri = new Uri("https://github.com/Griffon26/taserver/");
-            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerGithub)));
-
-            var linkTAServerDiscord = new Hyperlink(new Run("TAServer Discord"));
-            linkTAServerDiscord.NavigateUri = new Uri("https://discordapp.com/invite/8enekHQ");
-            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerDiscord)));
+            var linkNADiscord = new Hyperlink(new Run("NA Tribes Discord"));
+            linkNADiscord.NavigateUri = new Uri("https://discord.gg/gyWew2jHBx");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkNADiscord)));
 
             var linkAUDiscord = new Hyperlink(new Run("Australian Tribes Discord"));
-            linkAUDiscord.NavigateUri = new Uri("https://discord.gg/sWybn3v");
+            linkAUDiscord.NavigateUri = new Uri("https://discord.gg/3uS5yYD5jc");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkAUDiscord)));
 
             var linkEUDiscord = new Hyperlink(new Run("EU GOTY Tribes Discord"));
             linkEUDiscord.NavigateUri = new Uri("https://discord.gg/e7T8Pxs");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkEUDiscord)));
 
+            var linkTAServerDiscord = new Hyperlink(new Run("TAServer Discord"));
+            linkTAServerDiscord.NavigateUri = new Uri("https://discordapp.com/invite/8enekHQ");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerDiscord)));
+
+            var linkTAServerGithub = new Hyperlink(new Run("TAServer on GitHub"));
+            linkTAServerGithub.NavigateUri = new Uri("https://github.com/Griffon26/taserver/");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTAServerGithub)));
+
             var linkReddit = new Hyperlink(new Run("Tribes Subreddit"));
             linkReddit.NavigateUri = new Uri("https://www.reddit.com/r/Tribes/");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkReddit)));
+
+            var linkDDomain = new Hyperlink(new Run("Dodges Site"));
+            linkDDomain.NavigateUri = new Uri("https://www.dodgesdomain.com/");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkDDomain)));
+
+            var linkWildLive = new Hyperlink(new Run("Wilderzone Live"));
+            linkWildLive.NavigateUri = new Uri("https://wilderzone.live/");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkWildLive)));
 
             InfoRichTextBox.Document.Blocks.Add(title);
             InfoRichTextBox.Document.Blocks.Add(devPara);

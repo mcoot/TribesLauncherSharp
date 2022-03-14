@@ -288,6 +288,11 @@ namespace TribesLauncherSharp
                 string dir = new FileInfo(copyLocation).Directory.FullName;
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
+                // Read-only more like whatever we damn well want
+                if (File.Exists(copyLocation)) { 
+                    File.SetAttributes(copyLocation, FileAttributes.Normal);
+                }
+
                 // Copy the file
                 File.Copy($"{packageRoot}\\{normalisedRelativeFilename}", copyLocation, true);
             }
