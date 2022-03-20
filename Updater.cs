@@ -43,6 +43,8 @@ namespace TribesLauncherSharp
 
         public async Task DownloadObjectToFile(string key, string filePath)
         {
+            // Probably could put this elsewhere but good enough
+            webClient.Proxy = GlobalProxySelection.GetEmptyWebProxy();
             await webClient.DownloadFileTaskAsync($"{baseUrl}/{key}", filePath);
         }
 
