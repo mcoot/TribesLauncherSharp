@@ -87,7 +87,7 @@ namespace TribesLauncherSharp
 
         private Config LauncherConfig { get => DataModel.LauncherConfig; }
 
-        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.0.0");
+        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.1.1");
 
         System.Timers.Timer AutoInjectTimer { get; set; }
 
