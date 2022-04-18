@@ -335,7 +335,24 @@ namespace TribesLauncherSharp
                     AutoInjectTimer.Start();
                 } else
                 {
-                    SetStatus(LauncherStatus.READY_TO_INJECT);
+                    string dllPath;
+                    switch (config.DLL.Channel)
+                    {
+                        case DLLMode.Release:
+                            dllPath = "tamods.dll";
+                            break;
+                        case DLLMode.Beta:
+                            dllPath = "tamods-beta.dll";
+                            break;
+                        case DLLMode.Edge:
+                            dllPath = "tamods-edge.dll";
+                            break;
+                        default:
+                            dllPath = config.DLL.CustomDLLPath;
+                            break;
+                    }
+                    if (File.Exists(dllPath))
+                        SetStatus(LauncherStatus.READY_TO_INJECT);
                 }
             }));
         }
