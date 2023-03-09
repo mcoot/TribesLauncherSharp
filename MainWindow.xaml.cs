@@ -87,7 +87,7 @@ namespace TribesLauncherSharp
 
         private Config LauncherConfig { get => DataModel.LauncherConfig; }
 
-        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.1.1");
+        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.1.3");
 
         System.Timers.Timer AutoInjectTimer { get; set; }
 
@@ -263,7 +263,10 @@ namespace TribesLauncherSharp
             {
                 loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "Community").Address;
             }
-
+            else if (config.LoginServer.LoginServer == LoginServerMode.PUG)
+            {
+                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "PUG").Address;
+            }
             try
             {
                 lastLaunchedProcessId = InjectorLauncher.LaunchGame(config.GamePath, loginServerHost, config.CustomArguments);
@@ -487,7 +490,7 @@ namespace TribesLauncherSharp
             linksList.ListItems.Add(new ListItem(new Paragraph(linkTamodsOrg)));
 
             var linkNADiscord = new Hyperlink(new Run("NA Tribes Discord"));
-            linkNADiscord.NavigateUri = new Uri("https://discord.gg/gyWew2jHBx");
+            linkNADiscord.NavigateUri = new Uri("https://discord.gg/dd8JgzJ");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkNADiscord)));
 
             var linkAUDiscord = new Hyperlink(new Run("Australian Tribes Discord"));

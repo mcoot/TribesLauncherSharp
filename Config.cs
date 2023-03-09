@@ -16,6 +16,7 @@ namespace TribesLauncherSharp
     enum LoginServerMode
     {
         Community,
+        PUG,
         HiRez,
         Custom,
     }
