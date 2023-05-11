@@ -255,11 +255,11 @@ namespace TribesLauncherSharp
             Config config = LauncherConfig;
 
             string loginServerHost = config.LoginServer.CustomLoginServerHost;
-            if (config.LoginServer.LoginServer == LoginServerMode.HiRez)
-            {
-                loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "HiRez").Address;
-            }
-            else if (config.LoginServer.LoginServer == LoginServerMode.Community)
+            // if (config.LoginServer.LoginServer == LoginServerMode.HiRez)
+            // {
+            //     loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "HiRez").Address;
+            // }
+            if (config.LoginServer.LoginServer == LoginServerMode.Community)
             {
                 loginServerHost = TAModsNews.LoginServers.Find((ls) => ls.Name == "Community").Address;
             }

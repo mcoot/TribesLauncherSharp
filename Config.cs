@@ -17,7 +17,7 @@ namespace TribesLauncherSharp
     {
         Community,
         PUG,
-        HiRez,
+//        HiRez,
         Custom,
     }
 
