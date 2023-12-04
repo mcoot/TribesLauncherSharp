@@ -285,6 +285,7 @@ namespace TribesLauncherSharp
         public InjectConfig Injection { get; set; } = new InjectConfig();
         public LoginServerConfig LoginServer { get; set; } = new LoginServerConfig();
 
+        // Legacy, no longer used but left in for config compatibility
         private string updateUrl = "https://raw.githubusercontent.com/mcoot/tamodsupdate/release";
         public string UpdateUrl
         {

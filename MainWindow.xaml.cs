@@ -87,7 +87,7 @@ namespace TribesLauncherSharp
 
         private Config LauncherConfig { get => DataModel.LauncherConfig; }
 
-        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.1.3");
+        public static SemanticVersion LauncherVersion { get; } = SemanticVersion.Parse("2.2.0");
 
         System.Timers.Timer AutoInjectTimer { get; set; }
 
@@ -125,7 +125,7 @@ namespace TribesLauncherSharp
             AutoInjectTimer.Elapsed += OnAutoInjectTimerElapsed;
 
             string configPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "/My Games/Tribes Ascend/TribesGame/config/";
-            TAModsUpdater = new Updater(LauncherConfig.UpdateUrl, configPath, LauncherConfig.Debug);
+            TAModsUpdater = new Updater(configPath, LauncherConfig.Debug);
 
             // Add event handlers
             TAModsUpdater.OnUpdateComplete += OnUpdateFinished;

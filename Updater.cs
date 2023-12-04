@@ -27,7 +27,7 @@ namespace TribesLauncherSharp
 
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
-        private static readonly string baseUrl = "https://tamods-update.s3-ap-southeast-2.amazonaws.com";
+        private static readonly string baseUrl = "https://client.update.tamods.org";
 
         private readonly WebClient webClient = new WebClient();
 
@@ -63,7 +63,7 @@ namespace TribesLauncherSharp
         public string ConfigBasePath { get; set; }
 
 
-        public Updater(string remoteBaseUrl, string configBasePath, Config.DebugConfig debugConfig)
+        public Updater(string configBasePath, Config.DebugConfig debugConfig)
         {
             ConfigBasePath = configBasePath;
             updateSemaphore = new SemaphoreSlim(1, 1);
