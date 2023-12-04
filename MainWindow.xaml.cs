@@ -479,23 +479,19 @@ namespace TribesLauncherSharp
 
             var devPara = new Paragraph(new Run("Launcher developed by mcoot"));
 
-            var reportPara = new Paragraph(new Run("Please report bugs via Discord (mcoot#7419)/(Dodge#3156) or Reddit (/u/avianistheterm)"));
+            var reportPara = new Paragraph(new Run("Please report bugs via Discord to mcoot (dispirited.) or Dodge (dodg_)"));
 
             var linksPara = new Paragraph(new Run("Information about TAMods and community servers can be found at:"));
 
             var linksList = new System.Windows.Documents.List();
 
-            var linkTamodsOrg = new Hyperlink(new Run("TAMods.org"));
-            linkTamodsOrg.NavigateUri = new Uri("https://www.tamods.org");
-            linksList.ListItems.Add(new ListItem(new Paragraph(linkTamodsOrg)));
-
             var linkNADiscord = new Hyperlink(new Run("NA Tribes Discord"));
             linkNADiscord.NavigateUri = new Uri("https://discord.gg/dd8JgzJ");
             linksList.ListItems.Add(new ListItem(new Paragraph(linkNADiscord)));
 
-            var linkAUDiscord = new Hyperlink(new Run("Australian Tribes Discord"));
-            linkAUDiscord.NavigateUri = new Uri("https://discord.gg/3uS5yYD5jc");
-            linksList.ListItems.Add(new ListItem(new Paragraph(linkAUDiscord)));
+            var linkTamodsOrg = new Hyperlink(new Run("TAMods.org"));
+            linkTamodsOrg.NavigateUri = new Uri("https://www.tamods.org");
+            linksList.ListItems.Add(new ListItem(new Paragraph(linkTamodsOrg)));
 
             var linkEUDiscord = new Hyperlink(new Run("EU GOTY Tribes Discord"));
             linkEUDiscord.NavigateUri = new Uri("https://discord.gg/e7T8Pxs");
